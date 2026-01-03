@@ -130,18 +130,67 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
         }));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         let calculatedScore = 0;
+        let correctCount = 0;
+        let wrongCount = 0;
+
         questions.forEach(q => {
             if (selectedAnswers[q.id] === q.correct_option) {
-                calculatedScore += 4; // Assuming 4 marks per correct answer (NEET pattern)
+                calculatedScore += 4;
+                correctCount++;
             } else if (selectedAnswers[q.id] !== undefined) {
-                calculatedScore -= 1; // Negative marking
+                calculatedScore -= 1;
+                wrongCount++;
             }
         });
         setScore(calculatedScore);
         setIsSubmitted(true);
         window.scrollTo(0, 0);
+
+        // Save Attempt to Database
+        if (user && quiz) {
+            try {
+                const totalMarks = questions.length * 4;
+                const percentage = totalMarks > 0 ? (calculatedScore / totalMarks) * 100 : 0;
+
+                const { error } = await supabase.from('quiz_attempts').insert({
+                    quiz_id: quiz.id,
+                    user_id: user.id,
+                    score: calculatedScore,
+                    correct_count: correctCount,
+                    wrong_count: wrongCount, // Added required field
+                    total_marks: totalMarks,
+                    percentage: percentage,
+                    answers: selectedAnswers
+                });
+
+                if (error) {
+                    console.error('Error saving quiz attempt (Full):', JSON.stringify(error, null, 2));
+
+                    // Attempt Minimal Insert (Fallback)
+                    console.log("Attempting fallback insert with required types...");
+                    const { error: fallbackError } = await supabase.from('quiz_attempts').insert({
+                        quiz_id: quiz.id,
+                        user_id: user.id,
+                        score: calculatedScore,
+                        correct_count: correctCount,
+                        wrong_count: wrongCount, // Added here too
+                        total_marks: totalMarks,
+                    });
+
+                    if (fallbackError) {
+                        console.error('Fallback insert also failed (Full):', JSON.stringify(fallbackError, null, 2));
+                    } else {
+                        console.log('Fallback insert succeeded!');
+                    }
+                } else {
+                    console.log("Quiz attempt saved successfully!");
+                }
+            } catch (err) {
+                console.error('Unexpected error saving quiz:', err);
+            }
+        }
     };
 
     const formatTime = (seconds: number) => {
@@ -237,16 +286,19 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
                                         <div key={i} style={{
                                             padding: '8px 12px', borderRadius: '6px',
                                             backgroundColor:
-                                                i === q.correct_option ? '#FEE2E2' : // Always show correct green
-                                                    (i === userAnswer && !isCorrect) ? '#fee2e2' : '#f8fafc', // Show wrong red
+                                                i === q.correct_option ? '#f0fdf4' : // Correct: Green
+                                                    (i === userAnswer && !isCorrect) ? '#fef2f2' : '#f8fafc', // Wrong: Red
                                             color:
-                                                i === q.correct_option ? '#B91C1C' :
-                                                    (i === userAnswer && !isCorrect) ? '#991b1b' : 'inherit',
+                                                i === q.correct_option ? '#15803d' : // Correct: Green Text
+                                                    (i === userAnswer && !isCorrect) ? '#b91c1c' : 'inherit', // Wrong: Red Text
+                                            border:
+                                                i === q.correct_option ? '1px solid #bbf7d0' :
+                                                    (i === userAnswer && !isCorrect) ? '1px solid #fecaca' : '1px solid transparent',
                                             display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                                         }}>
                                             <span>{opt}</span>
-                                            {i === q.correct_option && <CheckCircle size={16} />}
-                                            {i === userAnswer && !isCorrect && <XCircle size={16} />}
+                                            {i === q.correct_option && <CheckCircle size={18} color="#15803d" />}
+                                            {i === userAnswer && !isCorrect && <XCircle size={18} color="#b91c1c" />}
                                         </div>
                                     ))}
                                 </div>

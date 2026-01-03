@@ -41,12 +41,18 @@ export default function ProfilePage() {
     const [orders, setOrders] = useState<any[]>([]);
 
     const [myCourses, setMyCourses] = useState<any[]>([]);
+    const [recentAttempts, setRecentAttempts] = useState<any[]>([]);
+    const [profileStats, setProfileStats] = useState({
+        coursesEnrolled: '0',
+        testsAttempted: '0',
+        accuracy: '0%'
+    });
 
-    // Real user stats (default to 0 for now)
-    const stats = [
-        { label: 'Courses Enrolled', value: '0', icon: BookOpen, color: '#DC2626' },
-        { label: 'Tests Attempted', value: '0', icon: ShieldCheck, color: '#FF5722' },
-        { label: 'Hours Studied', value: '0h', icon: Clock, color: '#2196F3' }
+    // Real user stats
+    const statsItems = [
+        { label: 'Courses Enrolled', value: profileStats.coursesEnrolled, icon: BookOpen, color: '#DC2626' },
+        { label: 'Tests Attempted', value: profileStats.testsAttempted, icon: ShieldCheck, color: '#FF5722' },
+        { label: 'Overall Accuracy', value: profileStats.accuracy, icon: Clock, color: '#2196F3' }
     ];
 
     const [phone, setPhone] = useState('');
@@ -131,6 +137,58 @@ export default function ProfilePage() {
                 } catch (err) {
                     console.error('Error loading profile:', err);
                 }
+
+                // Fetch Quiz Attempts (Split Query)
+                try {
+                    const { data: attempts, error: attemptsError } = await supabase
+                        .from('quiz_attempts')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('completed_at', { ascending: false });
+
+                    if (!attemptsError && attempts && attempts.length > 0) {
+                        const quizIds = Array.from(new Set(attempts.map((a: any) => a.quiz_id)));
+                        const { data: quizData } = await supabase
+                            .from('quizzes')
+                            .select('id, title')
+                            .in('id', quizIds);
+
+                        const quizMap = (quizData || []).reduce((acc: any, q: any) => {
+                            acc[q.id] = q.title;
+                            return acc;
+                        }, {});
+
+                        const enrichedAttempts = attempts.map((a: any) => ({
+                            ...a,
+                            quizzes: { title: quizMap[a.quiz_id] || 'Unknown Quiz' }
+                        }));
+
+                        setRecentAttempts(enrichedAttempts);
+
+                        // Calculate Stats
+                        let totalCorrect = 0;
+                        let totalQuestions = 0;
+                        enrichedAttempts.forEach((a: any) => {
+                            totalCorrect += a.correct_count || 0;
+                            totalQuestions += (a.total_marks || 0) / 4;
+                        });
+                        const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+
+                        // Update Stat Cards
+                        // Courses Enrolled (index 0), Tests Attempted (index 1), Hours Studied (index 2)
+                        // This is a bit hacky with direct state mutation but effectively sets initial values
+                        // Better to use state for the stats array itself, but trying to be minimally invasive first.
+                        // Actually, let's use a separate state or update the existing one if it were state.
+                        // The 'stats' variable is constant here, so I should introduce a state for it.
+                        setProfileStats({
+                            coursesEnrolled: myCourses.length.toString(),
+                            testsAttempted: enrichedAttempts.length.toString(),
+                            accuracy: `${accuracy}%`
+                        });
+                    }
+                } catch (err) {
+                    console.error("Error fetching quiz data for profile:", err);
+                }
             };
 
             fetchProfile();
@@ -185,6 +243,7 @@ export default function ProfilePage() {
     const tabs = [
         { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
         { id: 'courses', label: 'My Courses', icon: <BookOpen size={20} /> },
+        { id: 'quizzes', label: 'Quiz History', icon: <ShieldCheck size={20} /> },
         { id: 'orders', label: 'Order History', icon: <ShoppingBag size={20} /> },
         { id: 'settings', label: 'Settings', icon: <User size={20} /> },
     ];
@@ -263,7 +322,7 @@ export default function ProfilePage() {
                         {activeTab === 'overview' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px' }}>
-                                    {stats.map((stat, i) => (
+                                    {statsItems.map((stat, i) => (
                                         <Card key={i} padding="md">
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                                 <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: `${stat.color}20` }}>
@@ -308,6 +367,56 @@ export default function ProfilePage() {
                                     <div style={{ padding: '40px', textAlign: 'center', backgroundColor: 'white', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
                                         <p style={{ color: '#64748b' }}>You haven't enrolled in any courses yet.</p>
                                         <Link href="/pricing" style={{ color: '#DC2626', fontWeight: 600, marginTop: '8px', display: 'inline-block' }}>Browse Courses &rarr;</Link>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* QUIZZES TAB */}
+                        {activeTab === 'quizzes' && (
+                            <div>
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '24px' }}>Quiz Performance History</h2>
+                                {recentAttempts.length > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        {recentAttempts.map((attempt, i) => (
+                                            <Card key={i} padding="md">
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                                                    <div>
+                                                        <h4 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{attempt.quizzes?.title || 'Unknown Quiz'}</h4>
+                                                        <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                                                            Taken on {new Date(attempt.completed_at).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '24px', textAlign: 'right', alignItems: 'center' }}>
+                                                        <div>
+                                                            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#DC2626' }}>{attempt.score}</div>
+                                                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Score</div>
+                                                        </div>
+                                                        <div>
+                                                            <div style={{
+                                                                fontSize: '1.25rem', fontWeight: 700,
+                                                                color: attempt.percentage >= 80 ? '#16a34a' : attempt.percentage >= 50 ? '#ca8a04' : '#DC2626'
+                                                            }}>
+                                                                {Math.round(attempt.percentage)}%
+                                                            </div>
+                                                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Percentage</div>
+                                                        </div>
+                                                        <Link href={`/quiz/result/${attempt.id}`}>
+                                                            <Button size="sm" variant="outline">Review</Button>
+                                                        </Link>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: '60px', backgroundColor: 'white', borderRadius: '16px' }}>
+                                        <ShieldCheck size={48} color="#cbd5e1" style={{ marginBottom: '16px' }} />
+                                        <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '8px' }}>No Quizzes Attempted</h3>
+                                        <p style={{ color: '#64748b', marginBottom: '24px' }}>Test your knowledge by taking a quiz.</p>
+                                        <Link href="/neet/physics">
+                                            <Button>Start Learning</Button>
+                                        </Link>
                                     </div>
                                 )}
                             </div>
