@@ -256,18 +256,18 @@ const ProductManager = () => {
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500 }}>Product Name</label>
-                        <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required placeholder="e.g. Physics Bundle" />
+                        <Input value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} required placeholder="e.g. Physics Bundle" />
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500 }}>Price (₹)</label>
-                            <Input type="number" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} required />
+                            <Input type="number" value={formData.price || ''} onChange={e => setFormData({ ...formData, price: e.target.value })} required />
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500 }}>Type</label>
                             <select
-                                value={formData.type}
+                                value={formData.type || 'bundle'}
                                 onChange={e => setFormData({ ...formData, type: e.target.value as any })}
                                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
                             >
@@ -281,7 +281,7 @@ const ProductManager = () => {
 
                     <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500 }}>Description</label>
-                        <Input value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Short description" />
+                        <Input value={formData.description || ''} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Short description" />
                     </div>
 
                     <div>
@@ -304,7 +304,7 @@ const ProductManager = () => {
                                     <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '8px' }}>Subjects & Global</div>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                         {['full_bundle', 'test_series', ...subjects.map(s => s.id)].map(id => {
-                                            const isSelected = formData.targetIds.split(',').map(s => s.trim()).includes(id);
+                                            const isSelected = formData.targetIds?.split(',').map(s => s.trim()).includes(id);
                                             return (
                                                 <div
                                                     key={id}
@@ -340,7 +340,7 @@ const ProductManager = () => {
                                                 <div style={{ fontSize: '0.85rem', fontWeight: 500, color: '#475569', marginBottom: '4px', textTransform: 'capitalize' }}>{subject.title}</div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '8px' }}>
                                                     {chapters.map(chapter => {
-                                                        const isSelected = formData.targetIds.split(',').map(s => s.trim()).includes(chapter.id);
+                                                        const isSelected = formData.targetIds?.split(',').map(s => s.trim()).includes(chapter.id);
                                                         return (
                                                             <div
                                                                 key={chapter.id}
@@ -373,15 +373,15 @@ const ProductManager = () => {
 
                     <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500 }}>Features (comma separated)</label>
-                        <Input value={formData.features} onChange={e => setFormData({ ...formData, features: e.target.value })} placeholder="e.g. Live Classes, PDF Notes" />
+                        <Input value={formData.features || ''} onChange={e => setFormData({ ...formData, features: e.target.value })} placeholder="e.g. Live Classes, PDF Notes" />
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500 }}>Color</label>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                <Input type="color" value={formData.color} onChange={e => setFormData({ ...formData, color: e.target.value })} style={{ width: '50px', padding: '2px' }} />
-                                <Input value={formData.color} onChange={e => setFormData({ ...formData, color: e.target.value })} />
+                                <Input type="color" value={formData.color || '#DC2626'} onChange={e => setFormData({ ...formData, color: e.target.value })} style={{ width: '50px', padding: '2px' }} />
+                                <Input value={formData.color || ''} onChange={e => setFormData({ ...formData, color: e.target.value })} />
                             </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

@@ -32,12 +32,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Initialize Session
         const getSession = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session }, error } = await supabase.auth.getSession();
+
+                if (error) {
+                    throw error;
+                }
+
                 if (session?.user) {
                     setUser(mapSupabaseUser(session.user));
                 }
-            } catch (error) {
-                console.error("Auth Init Error:", error);
+            } catch (error: any) {
+                if (error?.message?.includes('Invalid Refresh Token') || error?.message?.includes('Refresh Token Not Found')) {
+                    // Suppress the error logging for this expected case
+                    console.warn("Session expired (Invalid Refresh Token), signing out...");
+
+                    // Clear Supabase local storage keys manually to prevent loops
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem(`sb-${process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1].split('.')[0]}-auth-token`);
+                        // Also try generic clean up just in case
+                        Object.keys(localStorage).forEach(key => {
+                            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                                localStorage.removeItem(key);
+                            }
+                        });
+                    }
+
+                    await supabase.auth.signOut();
+                    setUser(null);
+                } else {
+                    // Log actual unexpected errors
+                    console.error("Auth Init Error:", error);
+                }
             } finally {
                 setIsLoading(false);
             }
@@ -46,17 +71,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         getSession();
 
         // Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log("Auth State Change:", event);
             if (session?.user) {
                 setUser(mapSupabaseUser(session.user));
             } else {
                 setUser(null);
             }
+
+            // Handle specific events
+            if (event === 'SIGNED_OUT') {
+                setUser(null);
+                router.refresh();
+            }
+
             setIsLoading(false);
         });
 
         return () => subscription.unsubscribe();
-    }, []);
+    }, [router]);
 
     const mapSupabaseUser = (sbUser: SupabaseUser): User => {
         return {

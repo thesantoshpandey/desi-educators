@@ -33,6 +33,24 @@ export default function AdminDashboardPage() {
 
             const orders = dbOrders || [];
 
+            // Extract unique user IDs to fetch profile data manually (since no FK exists)
+            const userIds = Array.from(new Set(orders.map((o: any) => o.user_id).filter(Boolean)));
+
+            let userMap: Record<string, any> = {};
+
+            if (userIds.length > 0) {
+                const { data: profiles, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('id, name, email')
+                    .in('id', userIds);
+
+                if (!profileError && profiles) {
+                    profiles.forEach(p => {
+                        userMap[p.id] = p;
+                    });
+                }
+            }
+
             // Calculate Revenue
             const totalRevenue = orders.reduce((acc: number, order: any) => {
                 if (order.status === 'Success') {
@@ -73,7 +91,13 @@ export default function AdminDashboardPage() {
                 pendingOrders: orders.filter((o: any) => o.status === 'Pending').length
             });
 
-            setRecentOrders(orders.slice(0, 5));
+            // Attach profile data to orders for display
+            const enrichedOrders = orders.map((o: any) => ({
+                ...o,
+                profile: userMap[o.user_id]
+            }));
+
+            setRecentOrders(enrichedOrders.slice(0, 5));
             setTopCourses(sortedCourses);
         };
 
@@ -145,7 +169,9 @@ export default function AdminDashboardPage() {
                                 recentOrders.map((order, i) => (
                                     <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                         <td style={{ padding: '12px', fontWeight: 500 }}>#{order.id.replace('ORD-', '')}</td>
-                                        <td style={{ padding: '12px', color: '#64748b' }}>{order.user_id ? 'Student' : order.user}</td>
+                                        <td style={{ padding: '12px', color: '#64748b' }}>
+                                            {order.profile?.name || order.user || 'Student'}
+                                        </td>
                                         <td style={{ padding: '12px', fontSize: '0.9rem' }}>{order.plan_name || order.plan}</td>
                                         <td style={{ padding: '12px', fontWeight: 600 }}>₹{order.amount.toString().replace(/[^\d.]/g, '')}</td>
                                         <td style={{ padding: '12px' }}>

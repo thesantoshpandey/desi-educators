@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, CheckCircle, CreditCard, Lock } from 'lucide-react';
+import { X, CheckCircle, CreditCard, Lock, Loader2 } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
+import { useAuth } from '@/context/AuthContext';
 
 interface PaymentModalProps {
     isOpen: boolean;
@@ -11,9 +12,17 @@ interface PaymentModalProps {
     amount: number;
     planName: string;
     onSuccess: () => void;
+    items?: any[]; // Array of items being purchased (for enrollment)
 }
 
-export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: PaymentModalProps) => {
+declare global {
+    interface Window {
+        Razorpay: any;
+    }
+}
+
+export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, items }: PaymentModalProps) => {
+    const { user } = useAuth();
     const [step, setStep] = useState<'details' | 'processing' | 'success'>('details');
     const [loading, setLoading] = useState(false);
     const [couponCode, setCouponCode] = useState('');
@@ -24,6 +33,16 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: P
         setFinalAmount(amount);
         setDiscountApplied(0);
         setCouponCode('');
+
+        // Load Razorpay Script dynamically
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        document.body.appendChild(script);
+
+        return () => {
+            document.body.removeChild(script);
+        };
     }, [amount, isOpen]);
 
     const applyCoupon = () => {
@@ -46,59 +65,97 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: P
 
     if (!isOpen) return null;
 
-    const handlePay = async () => {
-        setStep('processing');
+    const handleRazorpayPayment = async () => {
+        if (!user) {
+            alert('Please login to continue');
+            return;
+        }
+
         setLoading(true);
 
         try {
-            // Simulate Payment Gateway
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // 1. Create Order via API
+            const response = await fetch('/api/payment/create-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: finalAmount,
+                    currency: 'INR'
+                })
+            });
 
-            const { data: { user } } = await import('@/lib/supabase').then(m => m.supabase.auth.getUser());
+            const orderData = await response.json();
 
-            if (user) {
-                const { supabase } = await import('@/lib/supabase');
-
-                // 1. Create Order
-                const orderId = `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
-                const { error: orderError } = await supabase.from('orders').insert({
-                    id: orderId, // Changed from order_id to match SQL
-                    user_id: user.id,
-                    amount: finalAmount.toString(), // Schema expects text
-                    plan_name: planName,
-                    status: 'Success',
-                    created_at: new Date().toISOString()
-                });
-
-                if (orderError) throw orderError;
-
-                // 2. Create Enrollment
-                // planName usually "Unlock: Material Title"
-                const cleanPlanName = planName.replace('Unlock: ', '').trim();
-                // We need the ID, but PaymentModal only gets planName. 
-                // Let's rely on callback or parent to handle enrollment?
-                // Parent `ChapterPage` knows the ID. 
-                // Let's keep `handlePaymentSuccess` in parent doing the heavy lifting?
-                // OR better: PaymentModal just handles payment record, Parent handles enrollment?
-                // Re-reading: ChapterPage handles 'hasItemAccess'.
-                // Ideally, PaymentModal should be pure.
-                // But we want to centralize logic.
-                // Let's stick to Parent Component handling success logic for content access.
-                // BUT PaymentModal MUST record the transaction in DB.
+            if (!response.ok) {
+                throw new Error(orderData.details || 'Failed to create order');
             }
 
-            setLoading(false);
-            setStep('success');
-            setTimeout(() => {
-                onSuccess();
-                setStep('details');
-            }, 1500);
+            // 2. Initialize Razorpay
+            const options = {
+                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Ensure exposed if needed, or rely on backend, but SDK needs public key usually? 
+                // Wait, Razorpay JS needs the ID. We should pass it from backend or env.
+                // Assuming it's in public env for now, or returned by create-order? 
+                // Let's assume env.
+                // If not in env, we can return it from backend create-order.
+
+                amount: orderData.amount,
+                currency: orderData.currency,
+                name: "Desi Educators",
+                description: `Purchase: ${planName}`,
+                image: "https://your-logo-url.com/logo.png", // Optional
+                order_id: orderData.id,
+                handler: async function (response: any) {
+                    // 3. Verify Payment
+                    setStep('processing');
+
+                    const verifyRes = await fetch('/api/payment/verify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature,
+                            user_id: user.id,
+                            amount: finalAmount,
+                            items: items || [{ id: 'bundle', title: planName, itemType: 'bundle' }]
+                        })
+                    });
+
+                    const verifyData = await verifyRes.json();
+
+                    if (verifyRes.ok) {
+                        setStep('success');
+                        setTimeout(() => {
+                            onSuccess();
+                            setStep('details');
+                        }, 2000);
+                    } else {
+                        alert('Payment Verification Failed: ' + verifyData.message);
+                        setStep('details');
+                    }
+                    setLoading(false);
+                },
+                prefill: {
+                    name: user.user_metadata?.name || 'User',
+                    email: user.email,
+                    contact: user.phone || ''
+                },
+                theme: {
+                    color: "#DC2626"
+                }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response: any) {
+                alert('Payment Failed: ' + response.error.description);
+                setLoading(false);
+            });
+            rzp.open();
 
         } catch (err: any) {
-            console.error('Payment Error Full:', JSON.stringify(err, null, 2));
-            console.error('Payment Error Message:', err?.message || err?.error_description || 'Unknown error');
+            console.error('Payment Initialization Error:', err);
+            alert('Failed to initiate payment. Please try again.');
             setLoading(false);
-            alert(`Payment failed: ${err?.message || 'Please try again.'}`);
         }
     };
 
@@ -156,55 +213,7 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: P
                             alignItems: 'center'
                         }}>
                             <span style={{ color: '#475569', fontWeight: 500 }}>Total Amount</span>
-                            <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#DC2626' }}>₹{amount}</span>
-                        </div>
-
-                        <div style={{ marginBottom: '24px' }}>
-                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 500 }}>Card Number (Mock)</label>
-                            <div style={{ position: 'relative' }}>
-                                <CreditCard size={20} style={{ position: 'absolute', left: '12px', top: '10px', color: '#94a3b8' }} />
-                                <input
-                                    type="text"
-                                    placeholder="4242 4242 4242 4242"
-                                    defaultValue="4242 4242 4242 4242"
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px 10px 10px 40px',
-                                        borderRadius: '6px',
-                                        border: '1px solid #e2e8f0',
-                                        outline: 'none'
-                                    }}
-                                />
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 500 }}>Expiry</label>
-                                <input
-                                    type="text"
-                                    defaultValue="12/28"
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        borderRadius: '6px',
-                                        border: '1px solid #e2e8f0'
-                                    }}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 500 }}>CVC</label>
-                                <input
-                                    type="text"
-                                    defaultValue="123"
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        borderRadius: '6px',
-                                        border: '1px solid #e2e8f0'
-                                    }}
-                                />
-                            </div>
+                            <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#DC2626' }}>₹{finalAmount}</span>
                         </div>
 
                         {/* Coupon Section */}
@@ -232,17 +241,23 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: P
                             )}
                         </div>
 
-                        <Button onClick={handlePay} className="w-full" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                            <Lock size={16} /> Pay ₹{finalAmount}
+                        <Button
+                            onClick={handleRazorpayPayment}
+                            disabled={loading}
+                            className="w-full"
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                        >
+                            {loading ? <Loader2 className="animate-spin" size={16} /> : <Lock size={16} />}
+                            {loading ? 'Processing...' : `Pay ₹${finalAmount} with Razorpay`}
                         </Button>
 
                         <p style={{ marginTop: '16px', textAlign: 'center', fontSize: '0.75rem', color: '#94a3b8' }}>
-                            Secured by DesiPayments (Mock Mode)
+                            Secured by Razorpay. UPI, Cards & Netbanking accepted.
                         </p>
                     </>
                 )}
 
-                {step === 'processing' && (
+                {(step === 'processing' || (step !== 'success' && loading && step !== 'details')) && (
                     <div style={{ textAlign: 'center', padding: '40px 0' }}>
                         <div className="spinner" style={{
                             width: '40px',
@@ -257,7 +272,7 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: P
                             @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
                         `}</style>
                         <h3 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Processing Payment...</h3>
-                        <p style={{ color: '#64748b' }}>Please do not close this window.</p>
+                        <p style={{ color: '#64748b' }}>Please wait while we verify your transaction.</p>
                     </div>
                 )}
 
