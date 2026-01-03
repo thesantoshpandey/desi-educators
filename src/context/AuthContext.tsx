@@ -10,6 +10,7 @@ export interface User {
     id: string;
     name: string;
     email: string;
+    phone?: string;
     role: 'student' | 'admin';
 }
 
@@ -97,6 +98,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             email: sbUser.email || '',
             // Use metadata name or fallback to email prefix
             name: sbUser.user_metadata?.name || sbUser.email?.split('@')[0] || 'User',
+            phone: sbUser.phone || sbUser.user_metadata?.phone || '',
             // Simple role logic: If email matches admin, they are admin. 
             // In real app, check 'profiles' table or app_metadata.
             role: sbUser.email === 'vishal.pandey1912@gmail.com' ? 'admin' : 'student'

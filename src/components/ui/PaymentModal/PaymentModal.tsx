@@ -136,7 +136,7 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
                     setLoading(false);
                 },
                 prefill: {
-                    name: user.user_metadata?.name || 'User',
+                    name: user.name || 'User',
                     email: user.email,
                     contact: user.phone || ''
                 },
