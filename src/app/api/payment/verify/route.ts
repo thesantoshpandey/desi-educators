@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { supabase } from '@/lib/supabase'; // Using the client-side lib for simplicity, but ideally should use a Service Role client for Admin writes
+import { createClient } from '@supabase/supabase-js';
 
-// IMPORTANT: For production, ensure you use a Service Role Client to bypass RLS when updating Orders/Enrollments
-// const adminSupabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+// Initialize Admin Client for server-side operations
+const adminSupabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+);
 
 export async function POST(request: Request) {
     try {
@@ -26,41 +29,32 @@ export async function POST(request: Request) {
         const isAuthentic = expectedSignature === razorpay_signature;
 
         if (isAuthentic) {
-            // 1. Update Order in Database (or Create if not pending logic handled on client)
-            // Let's create the final success record here to be safe and authoritative.
-
-            // NOTE: Ideally we should use a Service Role client here to ensure we can write to tables 
-            // regardless of user permission (though RLS v3 allows insert for authenticated).
-            // For now, we assume the API is called by the client but we will perform the database operations here.
-
-            /*
-               Schema Assumption:
-               orders: { id, user_id, amount, status, payment_id, provider_order_id, created_at }
-               enrollments: { user_id, item_id, item_type, access_granted_at }
-            */
+            // 1. Update Order in Database
+            // We use adminSupabase to ensure we can write to tables regardless of RLS policies.
 
             // A. Record Transaction
-            const { error: orderError } = await supabase.from('orders').insert({
+            const { error: orderError } = await adminSupabase.from('orders').insert({
                 user_id,
                 amount,
                 status: 'Success',
                 plan_name: items?.map((i: any) => i.title).join(', ') || 'Bundle',
                 payment_id: razorpay_payment_id,
-                // If you added 'provider_order_id' to schema, add: provider_order_id: razorpay_order_id
+                // provider_order_id: razorpay_order_id
             });
 
             if (orderError) {
                 console.error('Error recording order:', orderError);
-                // We don't fail the request because payment was successful, just log validation error.
+                // We don't fail the request because payment was successful, just log error.
             }
 
             // B. Grant Access (Enrollments)
             if (items && Array.isArray(items)) {
                 const enrollmentPromises = items.map((item: any) =>
-                    supabase.from('enrollments').insert({
+                    adminSupabase.from('enrollments').insert({
                         user_id,
                         item_id: item.id,
-                        item_type: item.itemType || 'material', // fallback
+                        course_id: item.id, // Explicitly set course_id for QuizPage compatibility
+                        item_type: item.itemType || 'material',
                         access_type: 'lifetime'
                     })
                 );
