@@ -6,7 +6,7 @@ export async function POST(request: Request) {
     try {
         // Initialize Admin Client lazily
         const adminSupabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
             process.env.SUPABASE_SERVICE_ROLE_KEY || 'fallback_key_for_build_only'
         );
 
