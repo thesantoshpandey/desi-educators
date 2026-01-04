@@ -43,13 +43,6 @@ SELECT USING (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can view own enrollments" ON public.enrollments;
 CREATE POLICY "Users can view own enrollments" ON public.enrollments FOR
 SELECT USING (auth.uid() = user_id);
--- Enrollments: Service Role Only for Inserts (handled by API)
--- But if we want client-side inserts (not recommended but used in QuizPage modal for free/test?), we might need this:
--- Actually QuizPage uses an insert in the modal onSuccess.
--- To allow the QuizPage client-side insert (if used), we need a policy.
--- However, for PAID courses, it should be server-side.
--- We will allow 'insert' for authenticated users for now to prevent breakage,
--- but strictly speaking, this should be restricted.
-DROP POLICY IF EXISTS "Users can insert own enrollments" ON public.enrollments;
-CREATE POLICY "Users can insert own enrollments" ON public.enrollments FOR
-INSERT WITH CHECK (auth.uid() = user_id);
+-- 5. Notes
+-- "Users can insert own enrollments" policy has been removed for security.
+-- Enrollments must be created via the secure Server Side API.

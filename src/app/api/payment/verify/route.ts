@@ -1,10 +1,36 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
     try {
-        // Initialize Admin Client lazily
+        const cookieStore = await cookies();
+
+        // 1. Authenticate User server-side
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    get(name: string) {
+                        return cookieStore.get(name)?.value
+                    },
+                },
+            }
+        );
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json(
+                { error: 'Unauthorized: Please please log in to verify payment.' },
+                { status: 401 }
+            );
+        }
+
+        // Initialize Admin Client lazily (for writing to DB bypassing RLS)
         const adminSupabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
             process.env.SUPABASE_SERVICE_ROLE_KEY || 'fallback_key_for_build_only'
@@ -14,7 +40,7 @@ export async function POST(request: Request) {
             razorpay_order_id,
             razorpay_payment_id,
             razorpay_signature,
-            user_id,
+            // user_id, // IGNORE CLIENT ID for security
             items,
             amount
         } = await request.json();
@@ -29,12 +55,12 @@ export async function POST(request: Request) {
         const isAuthentic = expectedSignature === razorpay_signature;
 
         if (isAuthentic) {
-            // 1. Update Order in Database
-            // We use adminSupabase to ensure we can write to tables regardless of RLS policies.
+            // 2. Use Secure Authenticated User ID
+            const secureUserId = user.id;
 
             // A. Record Transaction
             const { error: orderError } = await adminSupabase.from('orders').insert({
-                user_id,
+                user_id: secureUserId,
                 amount,
                 status: 'Success',
                 plan_name: items?.map((i: any) => i.title).join(', ') || 'Bundle',
@@ -51,7 +77,7 @@ export async function POST(request: Request) {
             if (items && Array.isArray(items)) {
                 const enrollmentPromises = items.map((item: any) =>
                     adminSupabase.from('enrollments').insert({
-                        user_id,
+                        user_id: secureUserId,
                         item_id: item.id,
                         course_id: item.id, // Explicitly set course_id for QuizPage compatibility
                         item_type: item.itemType || 'material',
