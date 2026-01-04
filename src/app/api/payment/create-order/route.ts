@@ -1,27 +1,28 @@
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
     try {
         const { amount, currency } = await request.json();
 
-        // 1. Verify User is Authenticated
-        const cookieStore = await cookies();
-        const supabase = createServerClient(
+        // 1. Verify User from Authorization Header
+        const authHeader = request.headers.get('Authorization');
+        const token = authHeader?.split(' ')[1];
+
+        if (!token) {
+            return NextResponse.json(
+                { details: 'Unauthorized: Missing Authentication Token.' },
+                { status: 401 }
+            );
+        }
+
+        const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    get(name: string) {
-                        return cookieStore.get(name)?.value
-                    },
-                },
-            }
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         );
 
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
             return NextResponse.json(

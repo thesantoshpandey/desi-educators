@@ -1,31 +1,30 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
     try {
-        const cookieStore = await cookies();
+        // 1. Verify User from Authorization Header
+        const authHeader = request.headers.get('Authorization');
+        const token = authHeader?.split(' ')[1];
 
-        // 1. Authenticate User server-side
-        const supabase = createServerClient(
+        if (!token) {
+            return NextResponse.json(
+                { error: 'Unauthorized: Missing Authentication Token.' },
+                { status: 401 }
+            );
+        }
+
+        const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    get(name: string) {
-                        return cookieStore.get(name)?.value
-                    },
-                },
-            }
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         );
 
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
             return NextResponse.json(
-                { error: 'Unauthorized: Please please log in to verify payment.' },
+                { error: 'Unauthorized: Invalid or expired token.' },
                 { status: 401 }
             );
         }
@@ -40,7 +39,7 @@ export async function POST(request: Request) {
             razorpay_order_id,
             razorpay_payment_id,
             razorpay_signature,
-            // user_id, // IGNORE CLIENT ID for security
+            // user_id, // IGNORED from body
             items,
             amount
         } = await request.json();

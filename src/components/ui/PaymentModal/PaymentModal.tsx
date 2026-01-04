@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { X, CheckCircle, CreditCard, Lock, Loader2 } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface PaymentModalProps {
     isOpen: boolean;
@@ -74,10 +75,21 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
         setLoading(true);
 
         try {
+            // Get Session Token for API Auth
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
+            if (!token) {
+                throw new Error('Please log in again (session missing).');
+            }
+
             // 1. Create Order via API
             const response = await fetch('/api/payment/create-order', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     amount: finalAmount,
                     currency: 'INR'
@@ -92,12 +104,7 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
 
             // 2. Initialize Razorpay
             const options = {
-                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Ensure exposed if needed, or rely on backend, but SDK needs public key usually? 
-                // Wait, Razorpay JS needs the ID. We should pass it from backend or env.
-                // Assuming it's in public env for now, or returned by create-order? 
-                // Let's assume env.
-                // If not in env, we can return it from backend create-order.
-
+                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
                 amount: orderData.amount,
                 currency: orderData.currency,
                 name: "Desi Educators",
@@ -110,13 +117,15 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
 
                     const verifyRes = await fetch('/api/payment/verify', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
                         body: JSON.stringify({
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_signature: response.razorpay_signature,
-                            user_id: user.id,
-                            amount: finalAmount,
+                            // user_id: user.id, // Removed: Server gets it from token
                             items: items || [{ id: 'bundle', title: planName, itemType: 'bundle' }]
                         })
                     });
