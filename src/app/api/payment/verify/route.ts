@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Admin Client for server-side operations
-const adminSupabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
-
 export async function POST(request: Request) {
     try {
+        // Initialize Admin Client lazily
+        const adminSupabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || 'fallback_key_for_build_only'
+        );
+
         const {
             razorpay_order_id,
             razorpay_payment_id,
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
         const body = razorpay_order_id + "|" + razorpay_payment_id;
 
         const expectedSignature = crypto
-            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || '')
             .update(body.toString())
             .digest("hex");
 

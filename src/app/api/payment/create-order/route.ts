@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID!,
-    key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
-
 export async function POST(request: Request) {
     try {
         const { amount, currency } = await request.json();
+
+        // Initialize Razorpay lazily to avoid build-time errors if env vars are missing
+        const razorpay = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID || 'test_key_id', // Fallback for build
+            key_secret: process.env.RAZORPAY_KEY_SECRET || 'test_key_secret',
+        });
 
         const options = {
             amount: amount * 100, // Amount in smallest currency unit (paise)
