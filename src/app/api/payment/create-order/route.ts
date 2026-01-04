@@ -5,10 +5,17 @@ export async function POST(request: Request) {
     try {
         const { amount, currency } = await request.json();
 
-        // Initialize Razorpay lazily to avoid build-time errors if env vars are missing
+        if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+            console.error('Razorpay keys missing');
+            return NextResponse.json(
+                { details: 'Server Error: Razorpay Keys are MISSING. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to Vercel Environment Variables.' },
+                { status: 500 }
+            );
+        }
+
         const razorpay = new Razorpay({
-            key_id: process.env.RAZORPAY_KEY_ID || 'test_key_id', // Fallback for build
-            key_secret: process.env.RAZORPAY_KEY_SECRET || 'test_key_secret',
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET,
         });
 
         const options = {
@@ -26,8 +33,11 @@ export async function POST(request: Request) {
         });
     } catch (error: any) {
         console.error('Error creating Razorpay order:', error);
+        // Try to extract useful message from Razorpay error object
+        const errorMessage = error.error?.description || error.message || JSON.stringify(error);
+
         return NextResponse.json(
-            { error: 'Error creating order', details: error.message },
+            { error: 'Error creating order', details: errorMessage },
             { status: 500 }
         );
     }
