@@ -8,7 +8,7 @@ export async function POST(request: Request) {
         if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
             console.error('Razorpay keys missing');
             return NextResponse.json(
-                { details: 'Server Error: Razorpay Keys are MISSING. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to Vercel Environment Variables.' },
+                { details: 'Payment configuration missing. Please verify server environment variables.' },
                 { status: 500 }
             );
         }
