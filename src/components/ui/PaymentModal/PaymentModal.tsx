@@ -154,7 +154,7 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
 
         } catch (err: any) {
             console.error('Payment Initialization Error:', err);
-            alert('Failed to initiate payment. Please try again.');
+            alert(`Payment Error: ${err.message || 'Unknown error'}. Please check your connection or contact support.`);
             setLoading(false);
         }
     };
