@@ -71,17 +71,8 @@ export default function PricingPage() {
     const handlePaymentSuccess = async () => {
         if (!selectedPlan || !user) return;
 
-        // 1. DB: Grant Access (Enrollments)
-        const { supabase } = await import('@/lib/supabase');
-        if (selectedPlan.targetIds && Array.isArray(selectedPlan.targetIds)) {
-            const inserts = selectedPlan.targetIds.map((tid: string) => ({
-                user_id: user.id,
-                target_id: tid,
-                target_type: 'plan_component',
-                created_at: new Date().toISOString()
-            }));
-            await supabase.from('enrollments').insert(inserts);
-        }
+        // 1. DB: Grant Access (Already handled by /api/payment/verify)
+        // We skip client-side DB insert to avoid duplicates & security issues
 
         // 2. Local: Grant Access
         if (selectedPlan.targetIds && Array.isArray(selectedPlan.targetIds)) {

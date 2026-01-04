@@ -226,16 +226,11 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
                     onClose={() => setShowPaymentModal(false)}
                     planName={`Quiz: ${quiz.title}`}
                     amount={quiz.price || 0}
-                    onSuccess={async () => {
-                        // Insert enrollment so user has access
-                        const { error } = await supabase.from('enrollments').insert({
-                            user_id: user.id,
-                            course_id: quiz.id
-                        });
-                        if (!error) {
-                            setHasAccess(true);
-                            setShowPaymentModal(false);
-                        }
+                    onSuccess={() => {
+                        // Backend handles enrollment (via /api/payment/verify)
+                        // Just update UI
+                        setHasAccess(true);
+                        setShowPaymentModal(false);
                     }}
                 />
             </div>

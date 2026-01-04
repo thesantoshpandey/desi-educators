@@ -74,14 +74,7 @@ export default function ChapterPage({
     const handlePaymentSuccess = async () => {
         if (!selectedItem || !user) return;
 
-        // Add to Enrollments in Supabase
-        const { supabase } = await import('@/lib/supabase');
-        await supabase.from('enrollments').insert({
-            user_id: user.id,
-            target_id: selectedItem.id, // Material ID
-            target_type: 'material',
-            created_at: new Date().toISOString()
-        });
+        // Backend handles DB enrollment. We just update local state.
 
         // Update local state to reflect change immediately
         setEnrollments(prev => [...prev, selectedItem.id]);
