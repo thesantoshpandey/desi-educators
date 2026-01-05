@@ -3,12 +3,14 @@ import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
 // Use Service Role for Admin Actions (writing to orders/enrollments without RLS constraints)
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(request: Request) {
+    // Use Service Role for Admin Actions (writing to orders/enrollments without RLS constraints)
+    // Initialize inside handler to avoid build-time errors if env vars are missing
+    const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     try {
         const signature = request.headers.get('x-razorpay-signature');
         const body = await request.text(); // Read raw body for signature verification
