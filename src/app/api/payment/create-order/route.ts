@@ -4,7 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
     try {
-        const { amount, currency } = await request.json();
+        const body = await request.json();
+        const { amount, currency } = body;
 
         // 1. Verify User from Authorization Header
         const authHeader = request.headers.get('Authorization');
@@ -63,6 +64,11 @@ export async function POST(request: Request) {
             amount: amount * 100, // Amount in smallest currency unit (paise)
             currency: currency || 'INR',
             receipt: `receipt_${Date.now()}`,
+            notes: {
+                user_id: user.id,
+                // Use the already parsed body
+                course_ids: body.items?.map((i: any) => i.id).join(',') || ''
+            }
         };
 
         const order = await razorpay.orders.create(options);
