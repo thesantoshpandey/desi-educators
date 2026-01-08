@@ -95,6 +95,7 @@ export async function POST(request: Request) {
                 const enrollmentPromises = items.map((item: any) =>
                     adminSupabase.from('enrollments').insert({
                         user_id: secureUserId,
+                        target_id: item.id, // Correct column for access checks
                         item_id: item.id,
                         course_id: item.id,
                         item_type: item.itemType || 'material',
