@@ -72,7 +72,7 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
             .from('coupons')
             .select('*')
             .eq('code', couponCode.toUpperCase())
-            .eq('is_active', true)
+            .eq('active', true)
             .single();
 
         if (coupon) {
