@@ -26,8 +26,8 @@ export default function LoginPage() {
 
             if (error) throw error;
 
-            router.push('/admin/content');
-            // router.refresh(); // Removed to prevent race conditions
+            // Force hard reload to ensure cookies are sent to middleware
+            window.location.href = '/admin/content';
         } catch (err: any) {
             if (err.message.includes('Email not confirmed')) {
                 setError('Please verify your email address. Check your inbox or Supabase dashboard.');
