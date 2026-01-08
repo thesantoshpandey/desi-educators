@@ -65,21 +65,29 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
         };
     }, [amount, isOpen]);
 
-    const applyCoupon = () => {
-        const coupons = JSON.parse(localStorage.getItem('siteCoupons') || '[]');
-        const coupon = coupons.find((c: any) => c.code === couponCode.toUpperCase() && c.active);
+    const applyCoupon = async () => {
+        if (!couponCode) return;
+
+        const { data: coupon, error } = await supabase
+            .from('coupons')
+            .select('*')
+            .eq('code', couponCode.toUpperCase())
+            .eq('is_active', true)
+            .single();
 
         if (coupon) {
             let discount = 0;
-            if (coupon.type === 'percent') {
-                discount = Math.floor((amount * coupon.discount) / 100);
+            if (coupon.discount_type === 'percent') {
+                discount = Math.floor((amount * coupon.discount_value) / 100);
             } else {
-                discount = coupon.discount;
+                discount = coupon.discount_value;
             }
             setDiscountApplied(discount);
             setFinalAmount(Math.max(0, amount - discount));
         } else {
             alert('Invalid or expired coupon code');
+            setDiscountApplied(0);
+            setFinalAmount(amount);
         }
     };
 
