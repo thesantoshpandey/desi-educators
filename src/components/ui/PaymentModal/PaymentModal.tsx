@@ -76,14 +76,14 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
             .single();
 
         if (coupon) {
-            let discount = 0;
-            if (coupon.discount_type === 'percent') {
-                discount = Math.floor((amount * coupon.discount_value) / 100);
+            let discountAmount = 0;
+            if (coupon.type === 'percent') {
+                discountAmount = Math.floor((amount * coupon.discount) / 100);
             } else {
-                discount = coupon.discount_value;
+                discountAmount = coupon.discount;
             }
-            setDiscountApplied(discount);
-            setFinalAmount(Math.max(0, amount - discount));
+            setDiscountApplied(discountAmount);
+            setFinalAmount(Math.max(0, amount - discountAmount));
         } else {
             alert('Invalid or expired coupon code');
             setDiscountApplied(0);
