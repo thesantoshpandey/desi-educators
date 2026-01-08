@@ -14,45 +14,18 @@ export default function ChapterPage({
     params: Promise<{ subject: string; chapter: string }>;
 }) {
     const { subject, chapter: chapterId } = use(params);
-    const { getChapterById, userProgress, toggleProgress, quizzes } = useContent();
+    const { getChapterById, userProgress, toggleProgress, quizzes, hasAccess } = useContent();
     const { user } = useAuth();
     const chapterData = getChapterById(subject, chapterId);
 
-
-    const [isOwnedGlobal, setIsOwnedGlobal] = React.useState(false);
-    const [ownedItems, setOwnedItems] = React.useState<string[]>([]);
     const [selectedItem, setSelectedItem] = React.useState<{ id: string, name: string, price: number } | null>(null);
-
-
-
-    const [enrollments, setEnrollments] = React.useState<string[]>([]);
-
-
-    React.useEffect(() => {
-        const checkAccess = async () => {
-            if (!user) return;
-
-            // Fetch Enrollments from Supabase
-            const { supabase } = await import('@/lib/supabase');
-            const { data, error } = await supabase
-                .from('enrollments')
-                .select('target_id')
-                .eq('user_id', user.id);
-
-            if (data) {
-                setEnrollments(data.map(e => e.target_id));
-            }
-        };
-
-        checkAccess();
-    }, [subject, user]);
 
     const hasItemAccess = (itemId: string) => {
         if (!user) return false;
-        // Check local state (fetched from DB)
-        if (enrollments.includes('full_bundle') || enrollments.includes('full-year')) return true;
-        if (enrollments.includes(subject)) return true; // Subject level access
-        return enrollments.includes(itemId);
+        // Global access check via Context
+        if (hasAccess(subject)) return true;
+        if (hasAccess('full_bundle')) return true;
+        return hasAccess(itemId);
     };
 
     const handleBuyItem = (e: React.MouseEvent, item: { id: string, title: string, price: number }) => {
@@ -71,14 +44,11 @@ export default function ChapterPage({
         });
     };
 
+    const { refreshEnrollments } = useContent();
+
     const handlePaymentSuccess = async () => {
         if (!selectedItem || !user) return;
-
-        // Backend handles DB enrollment. We just update local state.
-
-        // Update local state to reflect change immediately
-        setEnrollments(prev => [...prev, selectedItem.id]);
-
+        await refreshEnrollments();
         setSelectedItem(null);
     };
 

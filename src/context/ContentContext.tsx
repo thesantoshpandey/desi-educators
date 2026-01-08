@@ -33,6 +33,10 @@ interface ContentContextType {
     userProgress: Record<string, boolean>;
     toggleProgress: (materialId: string, isCompleted: boolean) => Promise<void>;
     isLoading: boolean;
+    // New Entitlement Logic
+    enrolledTargetIds: string[];
+    hasAccess: (targetId: string) => boolean;
+    refreshEnrollments: () => Promise<void>;
 }
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
@@ -44,12 +48,62 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
     const [isLoading, setIsLoading] = useState(true);
 
     const [userProgress, setUserProgress] = useState<Record<string, boolean>>({});
+    const [enrolledTargetIds, setEnrolledTargetIds] = useState<string[]>([]);
 
     // Fetch Initial Data
     useEffect(() => {
         fetchData();
         fetchUserProgress();
+        refreshEnrollments();
     }, []);
+
+    // Also refresh enrollments when auth state likely changes (handled via polling or just initial mount is enough if we force refresh on login)
+    // Actually, we should listen for auth changes to clear/fetch enrollments.
+    useEffect(() => {
+        // Simple polling or re-check on focus could be added here for robustness
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                refreshEnrollments();
+            } else if (event === 'SIGNED_OUT') {
+                setEnrolledTargetIds([]);
+            }
+        });
+        return () => subscription.unsubscribe();
+    }, []);
+
+    const refreshEnrollments = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            setEnrolledTargetIds([]);
+            return;
+        }
+
+        const { data, error } = await supabase
+            .from('enrollments')
+            .select('target_id')
+            .eq('user_id', user.id);
+
+        if (data) {
+            const ids = data.map(d => d.target_id);
+            setEnrolledTargetIds(ids);
+
+            // Sync to local storage for fail-safe (Dashboard legacy)
+            ids.forEach(id => {
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem(`access_${id}_${user.email}`, 'true');
+                }
+            });
+        }
+    };
+
+    const hasAccess = (targetId: string) => {
+        if (enrolledTargetIds.includes(targetId)) return true;
+
+        // Check for bundles
+        if (enrolledTargetIds.includes('full_bundle') || enrolledTargetIds.includes('full-year')) return true;
+
+        return false;
+    };
 
     // Fetch User Progress
     const fetchUserProgress = async () => {
@@ -375,7 +429,11 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             uploadFile,
             getChaptersBySubject,
             getChapterById,
-            isLoading
+            isLoading,
+            // New Entitlement Logic
+            enrolledTargetIds,
+            hasAccess,
+            refreshEnrollments
         }}>
             {children}
         </ContentContext.Provider>

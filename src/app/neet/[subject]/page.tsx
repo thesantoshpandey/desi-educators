@@ -15,7 +15,7 @@ export default function SubjectPage({
     params: Promise<{ subject: string }>;
 }) {
     const { subject } = use(params);
-    const { getChaptersBySubject } = useContent();
+    const { getChaptersBySubject, hasAccess, refreshEnrollments } = useContent();
     const { getProductByTarget } = useProduct();
     const subjectName = subject.charAt(0).toUpperCase() + subject.slice(1);
     const chapters = getChaptersBySubject(subject);
@@ -26,71 +26,23 @@ export default function SubjectPage({
     const { user } = useAuth();
     const { addToCart } = useCart();
     const [selectedProduct, setSelectedProduct] = React.useState<any>(null); // Product to buy (Subject or Chapter)
-    const [isOwned, setIsOwned] = React.useState(false);
     const [locks, setLocks] = React.useState<Record<string, boolean>>({});
+
+    const isOwned = hasAccess(subject);
 
     // Check ownership and load locks
     React.useEffect(() => {
         // Load miscellaneous locks config if needed (though really this should come from DB/Config too)
         const storedLocks = JSON.parse(localStorage.getItem('contentLocks') || '{}');
         setLocks(storedLocks);
-
-        const checkAccess = async () => {
-            if (!user) return;
-
-            // Check generic DB enrollments
-            const { supabase } = await import('@/lib/supabase');
-            const { data } = await supabase.from('enrollments').select('target_id').eq('user_id', user.id);
-
-            const dbTargets = data?.map(e => e.target_id) || [];
-
-            // Check if we own this subject via Bundle or Direct
-            if (dbTargets.includes(subject) || dbTargets.includes('full_bundle') || dbTargets.includes('full-year')) {
-                setIsOwned(true);
-            }
-        };
-
-        checkAccess();
-        // Removed legacy localStorage check to force reliable DB source
-    }, [subject, user]);
+    }, []);
 
     const handleSuccess = async () => {
         if (!user || !selectedProduct) return;
+        await refreshEnrollments();
 
-        // 1. Grant Access in Database (Enrollments)
-        const { supabase } = await import('@/lib/supabase');
-
-        // Loop through all targets (e.g. ['physics'] or ['chapter_101'])
-        const inserts = selectedProduct.targetIds.map((targetId: string) => ({
-            user_id: user.id,
-            target_id: targetId,
-            target_type: selectedProduct.type === 'chapter' ? 'chapter' : 'subject',
-            created_at: new Date().toISOString()
-        }));
-
-        await supabase.from('enrollments').insert(inserts);
-
-        // 2. Grant Access Locally (Cache)
-        selectedProduct.targetIds.forEach((target: string) => {
-            localStorage.setItem(`access_${target}_${user.email}`, 'true');
-        });
-
-        // 3. Update Order History (Local Storage Backup - PaymentModal handles DB Order)
-        const newOrder = {
-            id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
-            user: user.name,
-            plan: selectedProduct.name,
-            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            amount: `₹${selectedProduct.price.toLocaleString()}`,
-            status: 'Success'
-        };
-        const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-        localStorage.setItem('orders', JSON.stringify([newOrder, ...existingOrders]));
-
-        // Refresh State
-        if (selectedProduct.targetIds.includes(subject)) {
-            setIsOwned(true);
-        } else {
+        // Refresh State logic handled by context update
+        if (!selectedProduct.targetIds.includes(subject)) {
             window.location.reload();
         }
 
@@ -154,7 +106,7 @@ export default function SubjectPage({
                 <div style={{ display: 'grid', gap: '16px' }}>
                     {chapters.map((chapter) => {
                         // Check if user has explicit access to this chapter
-                        const hasChapterAccess = user ? localStorage.getItem(`access_${chapter.id}_${user.email}`) : false;
+                        const hasChapterAccess = hasAccess(chapter.id);
 
                         // Logic: Locked if (Subject Locked AND No Explicit Access)
                         const chapterLockKey = `${subject}_${chapter.id}`;

@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase';
 
 export default function DashboardPage() {
     const { user, isLoading } = useAuth();
+    const { enrolledTargetIds, refreshEnrollments } = useContent(); // Use global context
     const router = useRouter();
 
     const [courses, setCourses] = React.useState<any[]>([]);
@@ -29,30 +30,26 @@ export default function DashboardPage() {
         const fetchDashboardData = async () => {
             if (!user) return;
 
-            // 1. Fetch Enrollments from Database (Reliable Source)
+            // 1. Use Global Context for Enrollments (Instant & Cached)
             try {
-                const { data: enrollments, error: enrollError } = await supabase
-                    .from('enrollments')
-                    .select('target_id')
-                    .eq('user_id', user.id);
+                // Ensure we have latest data
+                if (enrolledTargetIds.length === 0) {
+                    await refreshEnrollments();
+                }
 
-                if (enrollError) throw enrollError;
-
-                const enrolledIds = enrollments?.map((e: any) => e.target_id) || [];
-                const hasFullAccess = enrolledIds.includes('full_bundle') || enrolledIds.includes('full-year');
+                const hasFullAccess = enrolledTargetIds.includes('full_bundle') || enrolledTargetIds.includes('full-year');
 
                 const activeCourses = [
                     { name: 'Full NEET Bundle', enrolled: hasFullAccess, progress: 0, color: '#DC2626' },
-                    { name: 'Physics Mastery', enrolled: hasFullAccess || enrolledIds.includes('physics'), progress: 0, color: '#FF5722' },
-                    { name: 'Chemistry Mastery', enrolled: hasFullAccess || enrolledIds.includes('chemistry'), progress: 0, color: '#2196F3' },
-                    { name: 'Biology Mastery', enrolled: hasFullAccess || enrolledIds.includes('biology'), progress: 0, color: '#8b5cf6' },
-                    { name: 'All India Test Series', enrolled: enrolledIds.includes('test_series') || enrolledIds.includes('test-series'), progress: 0, color: '#FFC107' },
-                    // Add legacy support or other IDs if needed
+                    { name: 'Physics Mastery', enrolled: hasFullAccess || enrolledTargetIds.includes('physics'), progress: 0, color: '#FF5722' },
+                    { name: 'Chemistry Mastery', enrolled: hasFullAccess || enrolledTargetIds.includes('chemistry'), progress: 0, color: '#2196F3' },
+                    { name: 'Biology Mastery', enrolled: hasFullAccess || enrolledTargetIds.includes('biology'), progress: 0, color: '#8b5cf6' },
+                    { name: 'All India Test Series', enrolled: enrolledTargetIds.includes('test_series') || enrolledTargetIds.includes('test-series'), progress: 0, color: '#FFC107' },
                 ].filter(c => c.enrolled);
 
                 setCourses(activeCourses);
             } catch (err) {
-                console.error("Error fetching enrollments:", err);
+                console.error("Error processing enrollments:", err);
             }
 
             // 2. Fetch Quiz Attempts
