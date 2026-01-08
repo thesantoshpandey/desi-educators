@@ -97,10 +97,11 @@ export async function middleware(request: NextRequest) {
         cspHeader += ' upgrade-insecure-requests;';
     }
 
-    response.headers.set(
-        'Content-Security-Policy',
-        cspHeader.replace(/\s{2,}/g, ' ').trim()
-    )
+    // Temporarily disabled CSP to debug Razorpay freeze issue
+    // response.headers.set(
+    //    'Content-Security-Policy',
+    //    cspHeader.replace(/\s{2,}/g, ' ').trim()
+    // )
 
     return response
 }
