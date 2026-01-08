@@ -15,7 +15,7 @@ export default function SubjectPage({
     params: Promise<{ subject: string }>;
 }) {
     const { subject } = use(params);
-    const { getChaptersBySubject, hasAccess, refreshEnrollments } = useContent();
+    const { getChaptersBySubject, hasAccess, refreshEnrollments, mergeEnrollments } = useContent();
     const { getProductByTarget } = useProduct();
     const subjectName = subject.charAt(0).toUpperCase() + subject.slice(1);
     const chapters = getChaptersBySubject(subject);
