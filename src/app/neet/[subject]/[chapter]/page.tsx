@@ -50,7 +50,7 @@ export default function ChapterPage({
     const hasItemAccess = (itemId: string) => {
         if (!user) return false;
         // Check local state (fetched from DB)
-        if (enrollments.includes('full_bundle')) return true;
+        if (enrollments.includes('full_bundle') || enrollments.includes('full-year')) return true;
         if (enrollments.includes(subject)) return true; // Subject level access
         return enrollments.includes(itemId);
     };

@@ -31,6 +31,7 @@ export default function SubjectPage({
 
     // Check ownership and load locks
     React.useEffect(() => {
+        // Load miscellaneous locks config if needed (though really this should come from DB/Config too)
         const storedLocks = JSON.parse(localStorage.getItem('contentLocks') || '{}');
         setLocks(storedLocks);
 
@@ -38,29 +39,19 @@ export default function SubjectPage({
             if (!user) return;
 
             // Check generic DB enrollments
-            // We can optimize this by creating a useEnrollments hook later
             const { supabase } = await import('@/lib/supabase');
             const { data } = await supabase.from('enrollments').select('target_id').eq('user_id', user.id);
 
             const dbTargets = data?.map(e => e.target_id) || [];
 
             // Check if we own this subject via Bundle or Direct
-            if (dbTargets.includes(subject) || dbTargets.includes('full_bundle')) {
+            if (dbTargets.includes(subject) || dbTargets.includes('full_bundle') || dbTargets.includes('full-year')) {
                 setIsOwned(true);
             }
-
-            // Update local storage for cache (optional but good for consistency)
-            dbTargets.forEach(t => localStorage.setItem(`access_${t}_${user.email}`, 'true'));
         };
 
         checkAccess();
-
-        // Keep legacy local storage check for immediate UI feedback before DB load
-        if (user) {
-            const subjectAccess = localStorage.getItem(`access_${subject}_${user.email}`);
-            const fullAccess = localStorage.getItem(`access_full_bundle_${user.email}`);
-            if (subjectAccess || fullAccess) setIsOwned(true);
-        }
+        // Removed legacy localStorage check to force reliable DB source
     }, [subject, user]);
 
     const handleSuccess = async () => {
