@@ -243,8 +243,13 @@ export default function ChapterPage({
                     isOpen={!!selectedItem}
                     onClose={() => setSelectedItem(null)}
                     amount={selectedItem.price}
-                    planName={`Unlock: ${selectedItem.name}`}
+                    planName={selectedItem.name}
                     onSuccess={handlePaymentSuccess}
+                    items={[{
+                        id: selectedItem.id,
+                        title: selectedItem.name,
+                        itemType: 'chapter'
+                    }]}
                 />
             )}
         </div>

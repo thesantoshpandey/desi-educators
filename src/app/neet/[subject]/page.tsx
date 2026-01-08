@@ -97,6 +97,11 @@ export default function SubjectPage({
                     amount={selectedProduct.price}
                     planName={selectedProduct.name}
                     onSuccess={handleSuccess}
+                    items={selectedProduct.targetIds.map((id: string) => ({
+                        id: id,
+                        title: selectedProduct.name, // or specific item name if available
+                        itemType: selectedProduct.type === 'chapter' ? 'chapter' : 'subject'
+                    }))}
                 />
             )}
 
