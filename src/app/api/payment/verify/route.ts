@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 
         if (!token) {
             return NextResponse.json(
-                { error: 'Unauthorized: Missing Authentication Token.' },
+                { message: 'Unauthorized: Missing Authentication Token.' },
                 { status: 401 }
             );
         }
@@ -24,22 +24,39 @@ export async function POST(request: Request) {
 
         if (authError || !user) {
             return NextResponse.json(
-                { error: 'Unauthorized: Invalid or expired token.' },
+                { message: 'Unauthorized: Invalid or expired token.' },
                 { status: 401 }
             );
         }
 
-        // Initialize Admin Client lazily (for writing to DB bypassing RLS)
-        const adminSupabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-            process.env.SUPABASE_SERVICE_ROLE_KEY || 'fallback_key_for_build_only'
-        );
+        // Validate Key Secret Existence
+        const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
+        if (!razorpaySecret) {
+            console.error('CRITICAL: RAZORPAY_KEY_SECRET is missing in environment variables.');
+            return NextResponse.json(
+                { message: 'Configuration Error: RAZORPAY_KEY_SECRET is missing on server.' },
+                { status: 500 }
+            );
+        }
+
+        // Initialize Admin Client
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (!supabaseUrl || !supabaseServiceKey) {
+            console.error('CRITICAL: Supabase Admin configuration missing.');
+            return NextResponse.json(
+                { message: 'Configuration Error: Supabase Admin keys missing.' },
+                { status: 500 }
+            );
+        }
+
+        const adminSupabase = createClient(supabaseUrl, supabaseServiceKey);
 
         const {
             razorpay_order_id,
             razorpay_payment_id,
             razorpay_signature,
-            // user_id, // IGNORED from body
             items,
             amount
         } = await request.json();
@@ -47,7 +64,7 @@ export async function POST(request: Request) {
         const body = razorpay_order_id + "|" + razorpay_payment_id;
 
         const expectedSignature = crypto
-            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || '')
+            .createHmac("sha256", razorpaySecret)
             .update(body.toString())
             .digest("hex");
 
@@ -78,7 +95,7 @@ export async function POST(request: Request) {
                     adminSupabase.from('enrollments').insert({
                         user_id: secureUserId,
                         item_id: item.id,
-                        course_id: item.id, // Explicitly set course_id for QuizPage compatibility
+                        course_id: item.id,
                         item_type: item.itemType || 'material',
                         access_type: 'lifetime'
                     })
@@ -92,15 +109,16 @@ export async function POST(request: Request) {
                 paymentId: razorpay_payment_id,
             });
         } else {
+            console.error(`Signature Verification Failed. Expected: ${expectedSignature}, Received: ${razorpay_signature}`);
             return NextResponse.json(
-                { message: "Invalid signature" },
+                { message: "Invalid Signature: The provided Razorpay payment signature did not match the expected one. This usually happens if the Backend Secret Key does not match the Frontend Key ID (e.g. Test vs Live mismatch)." },
                 { status: 400 }
             );
         }
     } catch (error: any) {
         console.error('Error verifying payment:', error);
         return NextResponse.json(
-            { error: 'Internal Server Error', details: error.message },
+            { message: 'Internal Server Error', details: error.message },
             { status: 500 }
         );
     }
