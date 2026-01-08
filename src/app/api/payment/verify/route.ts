@@ -15,6 +15,7 @@ export async function POST(request: Request) {
             );
         }
 
+        // Initialize a fresh client for auth verification (Token based)
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!

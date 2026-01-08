@@ -50,8 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
                     // Clear Supabase local storage keys manually to prevent loops
                     if (typeof window !== 'undefined') {
-                        /* ... existing cleanup logic is fine, keeping it brief ... */
-                        localStorage.clear(); // Nuclear option for localhost debugging usually better
+                        // Removed aggressive localStorage.clear() to prevent session instability
                     }
 
                     await supabase.auth.signOut();
