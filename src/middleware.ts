@@ -46,13 +46,15 @@ export async function middleware(request: NextRequest) {
             }
         } else {
             // User is logged in, check role
-            const userEmail = user.email;
-            // EXACT MATCH for security - in production, checking a database role is better,
-            // but this matches the user's current AuthContext logic.
-            const isAdmin = userEmail === 'vishal.pandey1912@gmail.com';
+            // User is logged in, check role
+            const userEmail = user.email?.toLowerCase();
+            const adminEmail = 'vishal.pandey1912@gmail.com'.toLowerCase();
+
+            // EXACT MATCH for security
+            const isAdmin = userEmail === adminEmail;
 
             if (!isAdmin) {
-                console.warn(`Unauthorized admin access attempt by ${userEmail}`);
+                console.warn(`Unauthorized admin access attempt by ${userEmail} (Expected: ${adminEmail})`);
                 return NextResponse.redirect(new URL('/dashboard', request.url));
             }
 
