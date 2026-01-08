@@ -29,23 +29,31 @@ export default function DashboardPage() {
         const fetchDashboardData = async () => {
             if (!user) return;
 
-            // 1. Fetch Course Access (Local Storage)
-            const email = user.email;
-            const hasFullAccess = localStorage.getItem(`access_full_bundle_${email}`);
-            const hasPhysics = localStorage.getItem(`access_physics_${email}`);
-            const hasChemistry = localStorage.getItem(`access_chemistry_${email}`);
-            const hasBiology = localStorage.getItem(`access_biology_${email}`);
-            const hasTestSeries = localStorage.getItem(`access_test_series_${email}`);
+            // 1. Fetch Enrollments from Database (Reliable Source)
+            try {
+                const { data: enrollments, error: enrollError } = await supabase
+                    .from('enrollments')
+                    .select('target_id')
+                    .eq('user_id', user.id);
 
-            const activeCourses = [
-                { name: 'Full NEET Bundle', enrolled: !!hasFullAccess, progress: 0, color: '#DC2626' },
-                { name: 'Physics Mastery', enrolled: !!(hasPhysics || hasFullAccess), progress: 0, color: '#FF5722' },
-                { name: 'Chemistry Mastery', enrolled: !!(hasChemistry || hasFullAccess), progress: 0, color: '#2196F3' },
-                { name: 'Biology Mastery', enrolled: !!(hasBiology || hasFullAccess), progress: 0, color: '#8b5cf6' },
-                { name: 'All India Test Series', enrolled: !!hasTestSeries, progress: 0, color: '#FFC107' },
-            ].filter(c => c.enrolled);
+                if (enrollError) throw enrollError;
 
-            setCourses(activeCourses);
+                const enrolledIds = enrollments?.map((e: any) => e.target_id) || [];
+                const hasFullAccess = enrolledIds.includes('full_bundle') || enrolledIds.includes('full-year');
+
+                const activeCourses = [
+                    { name: 'Full NEET Bundle', enrolled: hasFullAccess, progress: 0, color: '#DC2626' },
+                    { name: 'Physics Mastery', enrolled: hasFullAccess || enrolledIds.includes('physics'), progress: 0, color: '#FF5722' },
+                    { name: 'Chemistry Mastery', enrolled: hasFullAccess || enrolledIds.includes('chemistry'), progress: 0, color: '#2196F3' },
+                    { name: 'Biology Mastery', enrolled: hasFullAccess || enrolledIds.includes('biology'), progress: 0, color: '#8b5cf6' },
+                    { name: 'All India Test Series', enrolled: enrolledIds.includes('test_series') || enrolledIds.includes('test-series'), progress: 0, color: '#FFC107' },
+                    // Add legacy support or other IDs if needed
+                ].filter(c => c.enrolled);
+
+                setCourses(activeCourses);
+            } catch (err) {
+                console.error("Error fetching enrollments:", err);
+            }
 
             // 2. Fetch Quiz Attempts
             try {
