@@ -96,8 +96,7 @@ export async function POST(request: Request) {
                     adminSupabase.from('enrollments').insert({
                         user_id: secureUserId,
                         target_id: item.id,
-                        item_type: item.itemType || 'material',
-                        access_type: 'lifetime'
+                        target_type: item.itemType || 'material'
                     })
                 );
                 await Promise.all(enrollmentPromises);
