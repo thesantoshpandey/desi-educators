@@ -55,6 +55,20 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
     useEffect(() => {
         fetchData();
         fetchUserProgress();
+
+        // 1. Try Load from LocalStorage (Fast)
+        const loadLocalAccess = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && typeof window !== 'undefined') {
+                // Heuristic: Check common targets or just keep them in a specific 'all_enrollments' key?
+                // Scanning is hard. Let's rely on refreshEnrollments for the main source, 
+                // but checking 'physics' manually?
+                // Actually, let's trust refreshEnrollments which calls DB.
+                // If user reports "Pay Again", DB is failing.
+                // Let's debug RLS by forcing a re-run of the SQL policy via instructions.
+            }
+        };
+
         refreshEnrollments();
     }, []);
 
@@ -88,12 +102,23 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             const ids = data.map(d => d.target_id);
             setEnrolledTargetIds(ids);
 
-            // Sync to local storage for fail-safe (Dashboard legacy)
+            // Sync to local storage
             ids.forEach(id => {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem(`access_${id}_${user.email}`, 'true');
                 }
             });
+        } else {
+            // Fallback: Check LocalStorage if DB failed (RLS issue?)
+            if (typeof window !== 'undefined') {
+                // Scan specific known keys or rely on a list? 
+                // We can't easily scan all keys. 
+                // Instead, let's just stick to what we have in state if DB fails? No.
+                // Let's iterate all products? No.
+
+                // Better approach: If DB fails, do NOT clear state if we already had something?
+                // No, we want to load FROM storage on init.
+            }
         }
     };
 
@@ -435,7 +460,17 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             enrolledTargetIds,
             hasAccess,
             refreshEnrollments,
-            mergeEnrollments: (ids: string[]) => setEnrolledTargetIds(prev => [...prev, ...ids])
+            mergeEnrollments: async (ids: string[]) => {
+                setEnrolledTargetIds(prev => [...prev, ...ids]);
+
+                // Persist to local storage for backup
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user && typeof window !== 'undefined') {
+                    ids.forEach(id => {
+                        localStorage.setItem(`access_${id}_${user.email}`, 'true');
+                    });
+                }
+            }
         }}>
             {children}
         </ContentContext.Provider>

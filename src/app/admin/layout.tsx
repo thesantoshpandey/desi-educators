@@ -19,63 +19,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     React.useEffect(() => {
         const checkAuth = async () => {
             try {
-                // Add a timeout to prevent infinite loading
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject('Timeout'), 5000));
-                const authPromise = supabase.auth.getSession();
+                const { data: { user }, error } = await supabase.auth.getUser();
 
-                const { data: { session }, error } = await Promise.race([authPromise, timeoutPromise]) as any;
-
-                if (error) throw error;
-
-                console.log('AdminLayout: Checking session', { session });
-
-                if (!session) {
+                if (error || !user) {
                     if (pathname !== '/admin/login') {
-                        console.log('AdminLayout: No session, redirecting to login');
                         router.push('/admin/login');
                     } else {
-                        setIsLoading(false); // Validly on login page
+                        setIsLoading(false);
                     }
-                } else {
-                    console.log('AdminLayout: Session found, authenticating');
+                    return;
+                }
+
+                // Check Admin Email
+                const isAdmin = user.email?.toLowerCase() === 'vishal.pandey1912@gmail.com'.toLowerCase();
+
+                if (isAdmin) {
                     setIsAuthenticated(true);
                     if (pathname === '/admin/login') {
-                        console.log('AdminLayout: Already logged in, redirecting to dashboard');
                         router.push('/admin/content');
                     }
-                }
-            } catch (error) {
-                console.error('Auth check failed or timed out', error);
-                if (pathname !== '/admin/login') {
-                    router.push('/admin/login');
                 } else {
-                    setIsLoading(false);
+                    // Not admin
+                    router.push('/dashboard');
                 }
+            } catch (err) {
+                console.error('Admin Auth Error:', err);
+                if (pathname !== '/admin/login') router.push('/admin/login');
             } finally {
-                if (pathname !== '/admin/login') {
-                    setIsLoading(false);
-                }
+                setIsLoading(false);
             }
         };
 
         checkAuth();
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log('AdminLayout: Auth state change', event, session);
-            if (event === 'SIGNED_OUT') {
-                setIsAuthenticated(false);
-                router.push('/admin/login');
-            } else if (session) {
-                setIsAuthenticated(true);
-                if (pathname === '/admin/login') {
-                    router.push('/admin/content');
-                }
-            }
-        });
-
-        return () => {
-            subscription.unsubscribe();
-        };
     }, [pathname, router]);
 
     // If on login page, render full screen without sidebar
