@@ -37,9 +37,16 @@ export default function SubjectPage({
         setLocks(storedLocks);
     }, []);
 
-    const handleSuccess = async () => {
+    const handleSuccess = async (newlyEnrolledIds?: string[]) => {
         if (!user || !selectedProduct) return;
-        await refreshEnrollments();
+
+        // 1. Try immediate optimistic update from backend response
+        if (newlyEnrolledIds && newlyEnrolledIds.length > 0) {
+            mergeEnrollments(newlyEnrolledIds);
+        } else {
+            // Fallback to fetch
+            await refreshEnrollments();
+        }
 
         // Refresh State logic handled by context update
         if (!selectedProduct.targetIds.includes(subject)) {

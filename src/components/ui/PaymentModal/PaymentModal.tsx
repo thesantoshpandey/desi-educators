@@ -12,7 +12,7 @@ interface PaymentModalProps {
     onClose: () => void;
     amount: number;
     planName: string;
-    onSuccess: () => void;
+    onSuccess: (newlyEnrolledIds?: string[]) => void;
     items?: any[]; // Array of items being purchased (for enrollment)
 }
 
@@ -173,7 +173,11 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
                     if (verifyRes.ok) {
                         setStep('success');
                         setTimeout(() => {
-                            onSuccess();
+                            if (verifyData.enrolledTargets) {
+                                onSuccess(verifyData.enrolledTargets);
+                            } else {
+                                onSuccess();
+                            }
                             setStep('details');
                         }, 2000);
                     } else {

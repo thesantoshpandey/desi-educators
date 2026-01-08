@@ -109,6 +109,7 @@ export async function POST(request: Request) {
                 message: "success",
                 orderId: razorpay_order_id,
                 paymentId: razorpay_payment_id,
+                enrolledTargets: items?.map((i: any) => i.id) || [] // Return the IDs we just unlocked
             });
         } else {
             console.error(`Signature Verification Failed. Expected: ${expectedSignature}, Received: ${razorpay_signature}`);

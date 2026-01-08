@@ -44,11 +44,17 @@ export default function ChapterPage({
         });
     };
 
-    const { refreshEnrollments } = useContent();
+    const { refreshEnrollments, mergeEnrollments } = useContent();
 
-    const handlePaymentSuccess = async () => {
+    const handlePaymentSuccess = async (newlyEnrolledIds?: string[]) => {
         if (!selectedItem || !user) return;
-        await refreshEnrollments();
+
+        if (newlyEnrolledIds && newlyEnrolledIds.length > 0) {
+            mergeEnrollments(newlyEnrolledIds);
+        } else {
+            await refreshEnrollments();
+        }
+
         setSelectedItem(null);
     };
 

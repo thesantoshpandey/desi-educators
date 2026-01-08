@@ -37,6 +37,7 @@ interface ContentContextType {
     enrolledTargetIds: string[];
     hasAccess: (targetId: string) => boolean;
     refreshEnrollments: () => Promise<void>;
+    mergeEnrollments: (ids: string[]) => void;
 }
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
@@ -433,7 +434,8 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             // New Entitlement Logic
             enrolledTargetIds,
             hasAccess,
-            refreshEnrollments
+            refreshEnrollments,
+            mergeEnrollments: (ids: string[]) => setEnrolledTargetIds(prev => [...prev, ...ids])
         }}>
             {children}
         </ContentContext.Provider>
