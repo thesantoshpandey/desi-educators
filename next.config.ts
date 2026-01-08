@@ -3,17 +3,13 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   async headers() {
-    return [
+    const headers = [
       {
         source: '/:path*',
         headers: [
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on'
-          },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload'
           },
           {
             key: 'X-Frame-Options',
@@ -34,6 +30,15 @@ const nextConfig: NextConfig = {
         ]
       }
     ];
+
+    if (process.env.NODE_ENV === 'production') {
+      headers[0].headers.push({
+        key: 'Strict-Transport-Security',
+        value: 'max-age=63072000; includeSubDomains; preload'
+      });
+    }
+
+    return headers;
   }
 };
 

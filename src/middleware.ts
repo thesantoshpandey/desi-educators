@@ -79,7 +79,8 @@ export async function middleware(request: NextRequest) {
     // We use a permissive policy for 'script-src' to allow 'unsafe-eval' (needed for some dev tools/libraries)
     // and 'unsafe-inline' (common in Next.js).
     // We explicitly allow Razorpay and Google APIs.
-    const cspHeader = `
+    // We explicitly allow Razorpay and Google APIs.
+    let cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com https://apis.google.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
@@ -90,8 +91,11 @@ export async function middleware(request: NextRequest) {
     object-src 'none';
     base-uri 'self';
     form-action 'self';
-    upgrade-insecure-requests;
   `
+
+    if (process.env.NODE_ENV === 'production') {
+        cspHeader += ' upgrade-insecure-requests;';
+    }
 
     response.headers.set(
         'Content-Security-Policy',

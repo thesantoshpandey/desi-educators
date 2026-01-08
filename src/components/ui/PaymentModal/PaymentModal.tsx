@@ -26,6 +26,7 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
     const { user } = useAuth();
     const [step, setStep] = useState<'details' | 'processing' | 'success'>('details');
     const [loading, setLoading] = useState(false);
+    const [isSDKLoaded, setIsSDKLoaded] = useState(false);
     const [couponCode, setCouponCode] = useState('');
     const [discountApplied, setDiscountApplied] = useState(0);
     const [finalAmount, setFinalAmount] = useState(amount);
@@ -35,13 +36,31 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
         setDiscountApplied(0);
         setCouponCode('');
 
+        // Check if Razorpay is already loaded
+        if (typeof window !== 'undefined' && window.Razorpay) {
+            setIsSDKLoaded(true);
+            return;
+        }
+
         // Load Razorpay Script dynamically
         const script = document.createElement('script');
         script.src = 'https://checkout.razorpay.com/v1/checkout.js';
         script.async = true;
+
+        script.onload = () => {
+            setIsSDKLoaded(true);
+        };
+
+        script.onerror = () => {
+            console.error('Razorpay SDK failed to load');
+            alert('Falied to load Razorpay SDK. Please check your internet connection.');
+        };
+
         document.body.appendChild(script);
 
         return () => {
+            // Optional: Don't remove script strictly to avoid re-downloading on every modal open, 
+            // but for clean cleanup we can. ideally we keep it.
             document.body.removeChild(script);
         };
     }, [amount, isOpen]);
@@ -69,6 +88,11 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
     const handleRazorpayPayment = async () => {
         if (!user) {
             alert('Please login to continue');
+            return;
+        }
+
+        if (!isSDKLoaded) {
+            alert('Razorpay SDK is loading. Please wait...');
             return;
         }
 
@@ -102,9 +126,23 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
                 throw new Error(orderData.details || 'Failed to create order');
             }
 
+            // Check Key Availability
+            const key = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+            if (!key || key.includes('YOUR_KEY')) {
+                alert('Configuration Error: Invalid Razorpay Key. Please contact support.');
+                setLoading(false);
+                return;
+            }
+
+            if (!window.Razorpay) {
+                alert('Razorpay SDK not found. Please refresh the page.');
+                setLoading(false);
+                return;
+            }
+
             // 2. Initialize Razorpay
             const options = {
-                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+                key: key,
                 amount: orderData.amount,
                 currency: orderData.currency,
                 name: "Desi Educators",
@@ -252,12 +290,12 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
 
                         <Button
                             onClick={handleRazorpayPayment}
-                            disabled={loading}
+                            disabled={loading || !isSDKLoaded}
                             className="w-full"
                             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                         >
                             {loading ? <Loader2 className="animate-spin" size={16} /> : <Lock size={16} />}
-                            {loading ? 'Processing...' : `Pay ₹${finalAmount} with Razorpay`}
+                            {loading ? 'Processing...' : (!isSDKLoaded ? 'Loading Payment...' : `Pay ₹${finalAmount} with Razorpay`)}
                         </Button>
 
                         <p style={{ marginTop: '16px', textAlign: 'center', fontSize: '0.75rem', color: '#94a3b8' }}>
