@@ -5,6 +5,7 @@ import { Card, Button } from '@/components/ui';
 import { BookOpen, Target, TrendingUp, Clock } from 'lucide-react';
 import styles from './Dashboard.module.css';
 import { useAuth } from '@/context/AuthContext';
+import { useContent } from '@/context/ContentContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
