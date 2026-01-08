@@ -53,6 +53,7 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
 
     // Fetch Initial Data
     useEffect(() => {
+        fetchData();
         fetchUserProgress();
         refreshEnrollments();
     }, []);
