@@ -86,7 +86,7 @@ export async function middleware(request: NextRequest) {
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' blob: data: https://*;
     font-src 'self' data: https://fonts.gstatic.com;
-    connect-src 'self' https://*.supabase.co https://lumberjack.razorpay.com https://api.razorpay.com;
+    connect-src 'self' https://*.supabase.co https://lumberjack.razorpay.com https://*.razorpay.com;
     frame-src 'self' https://checkout.razorpay.com;
     object-src 'none';
     base-uri 'self';

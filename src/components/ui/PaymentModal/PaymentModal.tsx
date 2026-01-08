@@ -189,6 +189,12 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
                 },
                 theme: {
                     color: "#DC2626"
+                },
+                modal: {
+                    ondismiss: function () {
+                        setLoading(false);
+                        console.log('Payment modal closed by user');
+                    }
                 }
             };
 
