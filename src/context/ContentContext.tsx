@@ -10,7 +10,9 @@ export type { Topic, Material };
 export interface Subject {
     id: string;
     title: string;
+    order_index?: number;
     is_locked?: boolean;
+    price?: number;
 }
 
 export interface Chapter {
@@ -19,6 +21,7 @@ export interface Chapter {
     title: string;
     topics: Topic[];
     is_locked?: boolean;
+    price?: number;
 }
 
 interface ContentContextType {
@@ -31,10 +34,12 @@ interface ContentContextType {
     addSubject: (title: string) => Promise<void>;
     updateSubject: (id: string, title: string) => Promise<void>;
     updateSubjectLock: (id: string, isLocked: boolean) => Promise<void>;
+    updateSubjectPrice: (id: string, price: number) => Promise<void>;
     deleteSubject: (id: string) => Promise<void>;
     reorderSubjects: (orderedIds: string[]) => Promise<void>;
     addChapter: (subjectId: string, title: string) => Promise<void>;
     updateChapterLock: (chapterId: string, isLocked: boolean) => Promise<void>;
+    updateChapterPrice: (chapterId: string, price: number) => Promise<void>;
     updateChapter: (subjectId: string, chapterId: string, title: string) => Promise<void>;
     deleteChapter: (chapterId: string) => Promise<void>;
     addTopic: (subjectId: string, chapterId: string, title: string) => Promise<void>;
@@ -368,8 +373,26 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
         await fetchData();
     };
 
+    const updateSubjectPrice = async (id: string, price: number) => {
+        const { error } = await supabase.from('subjects').update({ price: price }).eq('id', id);
+        if (error) console.error('Error updating subject price', error);
+        await fetchData();
+    };
+
     const deleteSubject = async (id: string) => {
         const { error } = await supabase.from('subjects').delete().eq('id', id);
+        if (error) console.error(error);
+        await fetchData();
+    };
+    // ...
+    const updateChapterLock = async (chapterId: string, isLocked: boolean) => {
+        const { error } = await supabase.from('chapters').update({ is_locked: isLocked }).eq('id', chapterId);
+        if (error) console.error(error);
+        await fetchData();
+    };
+
+    const updateChapterPrice = async (chapterId: string, price: number) => {
+        const { error } = await supabase.from('chapters').update({ price: price }).eq('id', chapterId);
         if (error) console.error(error);
         await fetchData();
     };
@@ -406,11 +429,7 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
         await fetchData();
     };
 
-    const updateChapterLock = async (chapterId: string, isLocked: boolean) => {
-        const { error } = await supabase.from('chapters').update({ is_locked: isLocked }).eq('id', chapterId);
-        if (error) console.error(error);
-        await fetchData();
-    };
+
 
     const deleteChapter = async (chapterId: string) => {
         const { error } = await supabase.from('chapters').delete().eq('id', chapterId);
@@ -487,11 +506,13 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             addSubject,
             updateSubject,
             updateSubjectLock,
+            updateSubjectPrice,
             deleteSubject,
             reorderSubjects,
             addChapter,
             updateChapter,
             updateChapterLock,
+            updateChapterPrice,
             deleteChapter,
             addTopic,
             updateTopic,

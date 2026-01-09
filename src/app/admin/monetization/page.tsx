@@ -37,10 +37,11 @@ const SubjectLockManager = ({ subject, locks, toggleLock }: {
     locks: LockSettings,
     toggleLock: (key: string, type: 'subject' | 'chapter', id: void) => void
 }) => {
-    const { getChaptersBySubject, updateMaterial, updateChapterLock } = useContent();
+    const { getChaptersBySubject, updateMaterial, updateChapterLock, updateSubjectPrice, updateChapterPrice, subjects, chapters: allChapters } = useContent();
     const [expanded, setExpanded] = useState(false);
     const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
     const chapters = getChaptersBySubject(subject);
+    const subjectData = subjects.find(s => s.id === subject);
 
     const toggleChapterExpand = (chapterId: string) => {
         setExpandedChapters(prev => ({ ...prev, [chapterId]: !prev[chapterId] }));
@@ -71,6 +72,25 @@ const SubjectLockManager = ({ subject, locks, toggleLock }: {
                     <span style={{ textTransform: 'capitalize', fontWeight: 600 }}>{subject}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {locks[subject] && (
+                        <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative' }}>
+                            <IndianRupee size={12} style={{ position: 'absolute', top: '50%', left: '8px', transform: 'translateY(-50%)', color: '#64748b' }} />
+                            <input
+                                type="number"
+                                placeholder="Price"
+                                defaultValue={subjectData?.price || ''}
+                                onBlur={(e) => updateSubjectPrice(subject, parseFloat(e.target.value) || 0)}
+                                style={{
+                                    width: '80px',
+                                    padding: '4px 4px 4px 20px',
+                                    fontSize: '0.85rem',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    marginRight: '8px'
+                                }}
+                            />
+                        </div>
+                    )}
                     <span style={{ fontSize: '0.85rem', color: locks[subject] ? '#dc2626' : '#B91C1C', fontWeight: 500 }}>
                         {locks[subject] ? 'Course Locked' : 'Course Free'}
                     </span>
@@ -115,6 +135,24 @@ const SubjectLockManager = ({ subject, locks, toggleLock }: {
                                             <span style={{ fontSize: '0.9rem', color: '#334155' }}>{chapter.title}</span>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            {isLocked && (
+                                                <div style={{ position: 'relative' }}>
+                                                    <IndianRupee size={12} style={{ position: 'absolute', top: '50%', left: '8px', transform: 'translateY(-50%)', color: '#64748b' }} />
+                                                    <input
+                                                        type="number"
+                                                        placeholder="Price"
+                                                        defaultValue={chapter.price || ''}
+                                                        onBlur={(e) => updateChapterPrice(chapter.id, parseFloat(e.target.value) || 0)}
+                                                        style={{
+                                                            width: '70px',
+                                                            padding: '2px 2px 2px 20px',
+                                                            fontSize: '0.8rem',
+                                                            border: '1px solid #cbd5e1',
+                                                            borderRadius: '4px'
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
                                             <span style={{ fontSize: '0.75rem', color: isLocked ? '#dc2626' : '#94a3b8' }}>
                                                 {isLocked ? 'Locked' : 'Unlocked'}
                                             </span>

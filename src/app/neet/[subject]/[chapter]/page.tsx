@@ -119,7 +119,12 @@ export default function ChapterPage({
                                         const isMaterialLocked = (material.price || 0) > 0 && !hasAccess(material.id);
 
                                         const isLocked = isSubjectLocked || isChapterLocked || isMaterialLocked;
-                                        const displayPrice = isSubjectLocked ? 999 : (isChapterLocked ? 199 : (material.price || 0)); // Fallback prices if locked by parent but no specific price
+
+                                        const displayPrice = isSubjectLocked
+                                            ? (subjectData?.price && subjectData.price > 0 ? subjectData.price : 999)
+                                            : (isChapterLocked
+                                                ? (currentChapter?.price && currentChapter.price > 0 ? currentChapter.price : 199)
+                                                : (material.price || 0));
 
                                         const isCompleted = userProgress[material.id] || false;
                                         const isQuiz = material.type === 'test';
