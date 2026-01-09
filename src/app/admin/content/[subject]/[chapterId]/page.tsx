@@ -18,12 +18,25 @@ export default function AdminChapterPage({
     params: Promise<{ subject: string; chapterId: string }>;
 }) {
     const { subject, chapterId } = use(params);
-    const { getChapterById, addTopic, addMaterial, updateMaterial, deleteMaterial, deleteTopic, uploadFile, addQuiz, updateQuiz, deleteQuiz, quizzes } = useContent();
+    const { getChapterById, addTopic, updateTopic, deleteTopic, addMaterial, updateMaterial, deleteMaterial, uploadFile, addQuiz, updateQuiz, deleteQuiz, quizzes } = useContent();
     const chapter = getChapterById(subject, chapterId);
 
     // Modal States
     const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
     const [newTopicTitle, setNewTopicTitle] = useState('');
+    const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
+
+    const handleOpenAddTopic = () => {
+        setEditingTopicId(null);
+        setNewTopicTitle('');
+        setIsTopicModalOpen(true);
+    };
+
+    const handleOpenEditTopic = (topic: any) => {
+        setEditingTopicId(topic.id);
+        setNewTopicTitle(topic.title);
+        setIsTopicModalOpen(true);
+    };
 
     const [isMaterialModalOpen, setMaterialModalOpen] = useState(false);
     const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
@@ -42,10 +55,17 @@ export default function AdminChapterPage({
 
     if (!chapter) return <div>Chapter not found</div>;
 
-    const handleAddTopic = () => {
+    const handleSaveTopic = () => {
         if (!newTopicTitle.trim()) return;
-        addTopic(subject, chapterId, newTopicTitle);
+
+        if (editingTopicId) {
+            updateTopic(subject, chapterId, editingTopicId, newTopicTitle);
+        } else {
+            addTopic(subject, chapterId, newTopicTitle);
+        }
+
         setNewTopicTitle('');
+        setEditingTopicId(null);
         setIsTopicModalOpen(false);
     };
 
@@ -200,7 +220,7 @@ export default function AdminChapterPage({
                         <span style={{ textTransform: 'capitalize', color: 'var(--primary-color)', fontWeight: 600 }}>{subject}</span>
                         <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>{chapter.title}</h1>
                     </div>
-                    <Button leftIcon={<Plus size={18} />} onClick={() => setIsTopicModalOpen(true)}>Add New Topic</Button>
+                    <Button leftIcon={<Plus size={18} />} onClick={handleOpenAddTopic}>Add New Topic</Button>
                 </div>
             </div>
 
@@ -225,6 +245,9 @@ export default function AdminChapterPage({
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                     <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{topic.title}</h3>
+                                    <button onClick={() => handleOpenEditTopic(topic)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }} title="Edit Topic Name">
+                                        <Edit size={16} />
+                                    </button>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <Button size="sm" variant="outline" leftIcon={<HelpCircle size={14} />} onClick={() => openAddQuizModal(topic.id)}>
@@ -347,11 +370,11 @@ export default function AdminChapterPage({
                 <div style={modalOverlayStyle}>
                     <Card style={modalContentStyle}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                            <h3 style={{ fontWeight: 700 }}>Add Topic</h3>
+                            <h3 style={{ fontWeight: 700 }}>{editingTopicId ? 'Edit Topic' : 'Add Topic'}</h3>
                             <button onClick={() => setIsTopicModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
                         <Input label="Topic Name" placeholder="e.g. Introduction" value={newTopicTitle} onChange={(e) => setNewTopicTitle(e.target.value)} />
-                        <Button style={{ marginTop: '16px', width: '100%' }} onClick={handleAddTopic}>Create Topic</Button>
+                        <Button style={{ marginTop: '16px', width: '100%' }} onClick={handleSaveTopic}>{editingTopicId ? 'Update Topic' : 'Create Topic'}</Button>
                     </Card>
                 </div>
             )}

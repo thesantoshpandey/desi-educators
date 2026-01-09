@@ -24,6 +24,7 @@ interface ContentContextType {
     addChapter: (subjectId: string, title: string) => Promise<void>;
     deleteChapter: (chapterId: string) => Promise<void>;
     addTopic: (subjectId: string, chapterId: string, title: string) => Promise<void>;
+    updateTopic: (subjectId: string, chapterId: string, topicId: string, title: string) => Promise<void>;
     deleteTopic: (subjectId: string, chapterId: string, topicId: string) => Promise<void>;
     addMaterial: (subjectId: string, chapterId: string, topicId: string, material: Omit<Material, 'id'>) => Promise<void>;
     updateMaterial: (subjectId: string, chapterId: string, topicId: string, materialId: string, updates: Partial<Material>) => Promise<void>;
@@ -368,6 +369,12 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
         await fetchData();
     };
 
+    const updateTopic = async (subjectId: string, chapterId: string, topicId: string, title: string) => {
+        const { error } = await supabase.from('topics').update({ title }).eq('id', topicId);
+        if (error) console.error(error);
+        await fetchData();
+    };
+
     const deleteTopic = async (subjectId: string, chapterId: string, topicId: string) => {
         const { error } = await supabase.from('topics').delete().eq('id', topicId);
         if (error) console.error(error);
@@ -427,6 +434,7 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             addChapter,
             deleteChapter,
             addTopic,
+            updateTopic,
             deleteTopic,
             addMaterial,
             updateMaterial,
