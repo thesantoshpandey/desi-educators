@@ -3,11 +3,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, Button, Input } from '@/components/ui';
-import { Edit, Trash2, Plus, Search, FileText, Video, X, Book } from 'lucide-react';
+import { Edit, Trash2, Plus, Search, FileText, Video, X, Book, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useContent } from '@/context/ContentContext';
 
 export default function ContentManagementPage() {
-    const { chapters, subjects, addChapter, deleteChapter, addSubject, deleteSubject, updateSubject } = useContent();
+    const { chapters, subjects, addChapter, deleteChapter, addSubject, deleteSubject, updateSubject, reorderSubjects } = useContent();
     const [searchTerm, setSearchTerm] = useState('');
 
     // Add Chapter State
@@ -59,6 +59,19 @@ export default function ContentManagementPage() {
         setIsCourseModalOpen(false);
     };
 
+    const handleMoveSubject = (index: number, direction: 'left' | 'right') => {
+        if (direction === 'left' && index === 0) return;
+        if (direction === 'right' && index === subjects.length - 1) return;
+
+        const newSubjects = [...subjects];
+        const targetIndex = direction === 'left' ? index - 1 : index + 1;
+
+        // Swap
+        [newSubjects[index], newSubjects[targetIndex]] = [newSubjects[targetIndex], newSubjects[index]];
+
+        reorderSubjects(newSubjects.map(s => s.id));
+    };
+
     // Filter logic
     const safeSubjects = subjects || [];
     const filteredChapters = chapters.filter(c => {
@@ -89,7 +102,7 @@ export default function ContentManagementPage() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px' }}>
-                    {subjects.map(subject => {
+                    {subjects.map((subject, index) => {
                         const chapterCount = chapters.filter(c => c.subjectId === subject.id).length;
                         return (
                             <div key={subject.id} style={{
@@ -108,6 +121,23 @@ export default function ContentManagementPage() {
                                     </p>
                                 </div>
                                 <div style={{ display: 'flex', gap: '4px' }}>
+                                    <button
+                                        onClick={() => handleMoveSubject(index, 'left')}
+                                        disabled={index === 0}
+                                        style={{ border: 'none', background: 'none', cursor: index === 0 ? 'not-allowed' : 'pointer', color: index === 0 ? '#cbd5e1' : '#64748b', padding: '8px' }}
+                                        title="Move Left"
+                                    >
+                                        <ArrowLeft size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleMoveSubject(index, 'right')}
+                                        disabled={index === subjects.length - 1}
+                                        style={{ border: 'none', background: 'none', cursor: index === subjects.length - 1 ? 'not-allowed' : 'pointer', color: index === subjects.length - 1 ? '#cbd5e1' : '#64748b', padding: '8px' }}
+                                        title="Move Right"
+                                    >
+                                        <ArrowRight size={18} />
+                                    </button>
+                                    <div style={{ width: '1px', height: '20px', backgroundColor: '#e2e8f0', margin: '0 4px' }}></div>
                                     <button
                                         onClick={() => handleEditCourse(subject)}
                                         style={{

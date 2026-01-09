@@ -21,6 +21,7 @@ interface ContentContextType {
     addSubject: (title: string) => Promise<void>;
     updateSubject: (id: string, title: string) => Promise<void>;
     deleteSubject: (id: string) => Promise<void>;
+    reorderSubjects: (orderedIds: string[]) => Promise<void>;
     addChapter: (subjectId: string, title: string) => Promise<void>;
     updateChapter: (subjectId: string, chapterId: string, title: string) => Promise<void>;
     deleteChapter: (chapterId: string) => Promise<void>;
@@ -150,6 +151,7 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             const { data: subjectsData, error: subjectsError } = await supabase
                 .from('subjects')
                 .select('*')
+                .order('order_index', { ascending: true })
                 .order('created_at', { ascending: true });
 
             if (subjectsError) throw subjectsError;
@@ -350,6 +352,25 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
         await fetchData();
     };
 
+    const reorderSubjects = async (orderedIds: string[]) => {
+        // Optimistic update (optional, but good for UI)
+        setSubjects(prev => {
+            const sorted = [...prev].sort((a, b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id));
+            return sorted;
+        });
+
+        const updates = orderedIds.map((id, index) => ({
+            id,
+            order_index: index
+        }));
+
+        const { error } = await supabase.from('subjects').upsert(updates, { onConflict: 'id' });
+        if (error) {
+            console.error('Error reordering subjects:', error);
+            await fetchData(); // Revert on error
+        }
+    };
+
     const addChapter = async (subjectId: string, title: string) => {
         const id = crypto.randomUUID();
         const { error } = await supabase.from('chapters').insert([{ id, subject_id: subjectId, title }]);
@@ -438,6 +459,7 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             addSubject,
             updateSubject,
             deleteSubject,
+            reorderSubjects,
             addChapter,
             updateChapter,
             deleteChapter,
