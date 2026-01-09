@@ -76,12 +76,13 @@ export async function POST(request: Request) {
             const secureUserId = user.id;
 
             // A. Record Transaction
+            // A. Record Transaction
             const { error: orderError } = await adminSupabase.from('orders').insert({
                 user_id: secureUserId,
-                amount,
+                amount: amount.toString(), // Ensure string as per schema
                 status: 'Success',
                 plan_name: items?.map((i: any) => i.title).join(', ') || 'Bundle',
-                payment_id: razorpay_payment_id,
+                id: razorpay_payment_id, // Map payment_id to 'id' column as per schema
                 // provider_order_id: razorpay_order_id
             });
 

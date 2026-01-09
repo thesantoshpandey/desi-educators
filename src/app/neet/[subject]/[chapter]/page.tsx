@@ -24,6 +24,7 @@ export default function ChapterPage({
         if (!user) return false;
         // Global access check via Context
         if (hasAccess(subject)) return true;
+        if (hasAccess(chapterId)) return true; // Check if user owns the Chapter
         if (hasAccess('full_bundle')) return true;
         return hasAccess(itemId);
     };

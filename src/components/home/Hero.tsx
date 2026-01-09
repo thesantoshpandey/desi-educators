@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, Smartphone } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui';
 import styles from './Hero.module.css';
 
@@ -30,11 +30,7 @@ export const Hero = () => {
                                 {user ? "Go to Dashboard" : "Start Prep for Free"}
                             </Button>
                         </Link>
-                        <Link href="/download">
-                            <Button variant="outline" size="lg" leftIcon={<Smartphone size={20} />}>
-                                Download App
-                            </Button>
-                        </Link>
+
                     </div>
                     <div className={styles.stats}>
                         <div className={styles.statItem}>
