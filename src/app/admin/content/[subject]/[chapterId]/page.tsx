@@ -18,8 +18,12 @@ export default function AdminChapterPage({
     params: Promise<{ subject: string; chapterId: string }>;
 }) {
     const { subject, chapterId } = use(params);
-    const { getChapterById, addTopic, updateTopic, deleteTopic, addMaterial, updateMaterial, deleteMaterial, uploadFile, addQuiz, updateQuiz, deleteQuiz, quizzes } = useContent();
+    const { getChapterById, addTopic, updateTopic, deleteTopic, addMaterial, updateMaterial, deleteMaterial, uploadFile, addQuiz, updateQuiz, deleteQuiz, quizzes, updateChapter } = useContent();
     const chapter = getChapterById(subject, chapterId);
+
+    // Edit Chapter State
+    const [isEditChapterModalOpen, setIsEditChapterModalOpen] = useState(false);
+    const [editChapterTitle, setEditChapterTitle] = useState('');
 
     // Modal States
     const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
@@ -54,6 +58,17 @@ export default function AdminChapterPage({
     const [isUploading, setIsUploading] = useState(false);
 
     if (!chapter) return <div>Chapter not found</div>;
+
+    const handleOpenEditChapter = () => {
+        setEditChapterTitle(chapter.title);
+        setIsEditChapterModalOpen(true);
+    };
+
+    const handleUpdateChapter = () => {
+        if (!editChapterTitle.trim()) return;
+        updateChapter(subject, chapterId, editChapterTitle);
+        setIsEditChapterModalOpen(false);
+    };
 
     const handleSaveTopic = () => {
         if (!newTopicTitle.trim()) return;
@@ -218,7 +233,12 @@ export default function AdminChapterPage({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                         <span style={{ textTransform: 'capitalize', color: 'var(--primary-color)', fontWeight: 600 }}>{subject}</span>
-                        <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>{chapter.title}</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>{chapter.title}</h1>
+                            <button onClick={handleOpenEditChapter} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }} title="Edit Chapter Name">
+                                <Edit size={20} />
+                            </button>
+                        </div>
                     </div>
                     <Button leftIcon={<Plus size={18} />} onClick={handleOpenAddTopic}>Add New Topic</Button>
                 </div>
@@ -479,6 +499,20 @@ export default function AdminChapterPage({
                 onSave={handleSaveQuiz}
                 initialData={quizInitialData}
             />
+
+            {/* Edit Chapter Modal */}
+            {isEditChapterModalOpen && (
+                <div style={modalOverlayStyle}>
+                    <Card style={modalContentStyle}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                            <h3 style={{ fontWeight: 700 }}>Edit Chapter</h3>
+                            <button onClick={() => setIsEditChapterModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        <Input label="Chapter Title" placeholder="e.g. Thermodynamics" value={editChapterTitle} onChange={(e) => setEditChapterTitle(e.target.value)} />
+                        <Button style={{ marginTop: '16px', width: '100%' }} onClick={handleUpdateChapter}>Update Chapter</Button>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }
