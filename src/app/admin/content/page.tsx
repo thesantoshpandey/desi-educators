@@ -7,7 +7,7 @@ import { Edit, Trash2, Plus, Search, FileText, Video, X, Book } from 'lucide-rea
 import { useContent } from '@/context/ContentContext';
 
 export default function ContentManagementPage() {
-    const { chapters, subjects, addChapter, deleteChapter, addSubject, deleteSubject } = useContent();
+    const { chapters, subjects, addChapter, deleteChapter, addSubject, deleteSubject, updateSubject } = useContent();
     const [searchTerm, setSearchTerm] = useState('');
 
     // Add Chapter State
@@ -25,6 +25,25 @@ export default function ContentManagementPage() {
     // Add Course State
     const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
     const [newCourseTitle, setNewCourseTitle] = useState('');
+
+    // Edit Course State
+    const [isEditCourseModalOpen, setIsEditCourseModalOpen] = useState(false);
+    const [editCourseId, setEditCourseId] = useState<string | null>(null);
+    const [editCourseTitle, setEditCourseTitle] = useState('');
+
+    const handleEditCourse = (subject: any) => {
+        setEditCourseId(subject.id);
+        setEditCourseTitle(subject.title);
+        setIsEditCourseModalOpen(true);
+    };
+
+    const handleUpdateCourse = () => {
+        if (!editCourseId || !editCourseTitle.trim()) return;
+        updateSubject(editCourseId, editCourseTitle);
+        setIsEditCourseModalOpen(false);
+        setEditCourseId(null);
+        setEditCourseTitle('');
+    };
 
     const handleAddChapter = () => {
         if (!newChapterTitle.trim() || !newChapterSubject) return;
@@ -88,27 +107,44 @@ export default function ContentManagementPage() {
                                         {chapterCount} {chapterCount === 1 ? 'Chapter' : 'Chapters'}
                                     </p>
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        if (confirm('Are you sure you want to delete this course? All chapters will be hidden.')) {
-                                            deleteSubject(subject.id);
-                                        }
-                                    }}
-                                    style={{
-                                        color: '#94a3b8',
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        padding: '8px',
-                                        borderRadius: '4px',
-                                        transition: 'all 0.2s'
-                                    }}
-                                    onMouseOver={(e) => e.currentTarget.style.color = '#ef4444'}
-                                    onMouseOut={(e) => e.currentTarget.style.color = '#94a3b8'}
-                                    title="Delete Course"
-                                >
-                                    <Trash2 size={18} />
-                                </button>
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                    <button
+                                        onClick={() => handleEditCourse(subject)}
+                                        style={{
+                                            color: '#64748b',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            padding: '8px',
+                                            borderRadius: '4px',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        title="Edit Course"
+                                    >
+                                        <Edit size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (confirm('Are you sure you want to delete this course? All chapters will be hidden.')) {
+                                                deleteSubject(subject.id);
+                                            }
+                                        }}
+                                        style={{
+                                            color: '#94a3b8',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            padding: '8px',
+                                            borderRadius: '4px',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseOver={(e) => e.currentTarget.style.color = '#ef4444'}
+                                        onMouseOut={(e) => e.currentTarget.style.color = '#94a3b8'}
+                                        title="Delete Course"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
                             </div>
                         );
                     })}
@@ -290,6 +326,45 @@ export default function ContentManagementPage() {
                             />
 
                             <Button onClick={handleAddCourse} style={{ width: '100%' }}>Create Course</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Course Modal */}
+            {isEditCourseModalOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        padding: '24px',
+                        borderRadius: '12px',
+                        width: '400px',
+                        maxWidth: '90%'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Edit Course</h3>
+                            <button onClick={() => setIsEditCourseModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <Input
+                                label="Course Title"
+                                placeholder="e.g. 12th Class Mnemonics"
+                                value={editCourseTitle}
+                                onChange={(e) => setEditCourseTitle(e.target.value)}
+                            />
+
+                            <Button onClick={handleUpdateCourse} style={{ width: '100%' }}>Update Course</Button>
                         </div>
                     </div>
                 </div>

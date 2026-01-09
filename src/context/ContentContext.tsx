@@ -19,6 +19,7 @@ interface ContentContextType {
     updateQuiz: (quizId: string, title: string, questions: any[], price: number) => Promise<void>;
     deleteQuiz: (quizId: string) => Promise<void>;
     addSubject: (title: string) => Promise<void>;
+    updateSubject: (id: string, title: string) => Promise<void>;
     deleteSubject: (id: string) => Promise<void>;
     addChapter: (subjectId: string, title: string) => Promise<void>;
     deleteChapter: (chapterId: string) => Promise<void>;
@@ -332,6 +333,15 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
         await fetchData();
     };
 
+    const updateSubject = async (id: string, title: string) => {
+        const { error } = await supabase.from('subjects').update({ title }).eq('id', id);
+        if (error) {
+            console.error('Error updating subject', error);
+            return;
+        }
+        await fetchData();
+    };
+
     const deleteSubject = async (id: string) => {
         const { error } = await supabase.from('subjects').delete().eq('id', id);
         if (error) console.error(error);
@@ -412,6 +422,7 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             updateQuiz,
             deleteQuiz,
             addSubject,
+            updateSubject,
             deleteSubject,
             addChapter,
             deleteChapter,
