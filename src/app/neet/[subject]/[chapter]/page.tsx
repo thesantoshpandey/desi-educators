@@ -14,9 +14,11 @@ export default function ChapterPage({
     params: Promise<{ subject: string; chapter: string }>;
 }) {
     const { subject, chapter: chapterId } = use(params);
-    const { getChapterById, userProgress, toggleProgress, quizzes, hasAccess } = useContent();
+    const { getChapterById, userProgress, toggleProgress, quizzes, hasAccess, subjects, chapters } = useContent();
     const { user } = useAuth();
     const chapterData = getChapterById(subject, chapterId);
+    const subjectData = subjects.find(s => s.id === subject || s.title.toLowerCase() === subject.toLowerCase());
+    const currentChapter = chapters.find(c => c.id === chapterId);
 
     const [selectedItem, setSelectedItem] = React.useState<{ id: string, name: string, price: number } | null>(null);
 
@@ -112,7 +114,13 @@ export default function ChapterPage({
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                     {unifiedMaterials.map(material => {
                                         const price = material.price || 0;
-                                        const isLocked = price > 0 && !hasItemAccess(material.id);
+                                        const isSubjectLocked = subjectData?.is_locked && !hasAccess(subjectData.id);
+                                        const isChapterLocked = currentChapter?.is_locked && !hasAccess(chapterId);
+                                        const isMaterialLocked = (material.price || 0) > 0 && !hasAccess(material.id);
+
+                                        const isLocked = isSubjectLocked || isChapterLocked || isMaterialLocked;
+                                        const displayPrice = isSubjectLocked ? 999 : (isChapterLocked ? 199 : (material.price || 0)); // Fallback prices if locked by parent but no specific price
+
                                         const isCompleted = userProgress[material.id] || false;
                                         const isQuiz = material.type === 'test';
 
@@ -147,9 +155,9 @@ export default function ChapterPage({
                                                         <Button
                                                             size="sm"
                                                             style={{ height: '36px', fontSize: '0.85rem', backgroundColor: '#111827' }}
-                                                            onClick={(e) => handleBuyItem(e, { id: material.id, title: material.title, price })}
+                                                            onClick={(e) => handleBuyItem(e, { id: isSubjectLocked ? (subjectData?.id || '') : (isChapterLocked ? chapterId : material.id), title: isSubjectLocked ? (subjectData?.title || 'Course') : (isChapterLocked ? (currentChapter?.title || 'Chapter') : material.title), price: displayPrice })}
                                                         >
-                                                            Unlock ₹{price}
+                                                            Unlock ₹{displayPrice}
                                                         </Button>
                                                     </div>
                                                 ) : (

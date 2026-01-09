@@ -2,13 +2,23 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from './AuthContext';
 // Retaining types for existing UI compatibility
-import { Chapter, Topic, Material } from '@/data/content';
-export type { Chapter, Topic, Material };
+import { Topic, Material } from '@/data/content';
+export type { Topic, Material };
 
 export interface Subject {
     id: string;
     title: string;
+    is_locked?: boolean;
+}
+
+export interface Chapter {
+    id: string;
+    subjectId: string;
+    title: string;
+    topics: Topic[];
+    is_locked?: boolean;
 }
 
 interface ContentContextType {
@@ -20,9 +30,11 @@ interface ContentContextType {
     deleteQuiz: (quizId: string) => Promise<void>;
     addSubject: (title: string) => Promise<void>;
     updateSubject: (id: string, title: string) => Promise<void>;
+    updateSubjectLock: (id: string, isLocked: boolean) => Promise<void>;
     deleteSubject: (id: string) => Promise<void>;
     reorderSubjects: (orderedIds: string[]) => Promise<void>;
     addChapter: (subjectId: string, title: string) => Promise<void>;
+    updateChapterLock: (chapterId: string, isLocked: boolean) => Promise<void>;
     updateChapter: (subjectId: string, chapterId: string, title: string) => Promise<void>;
     deleteChapter: (chapterId: string) => Promise<void>;
     addTopic: (subjectId: string, chapterId: string, title: string) => Promise<void>;
@@ -54,6 +66,8 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
 
     const [userProgress, setUserProgress] = useState<Record<string, boolean>>({});
     const [enrolledTargetIds, setEnrolledTargetIds] = useState<string[]>([]);
+
+    const { user } = useAuth();
 
     // Fetch Initial Data
     useEffect(() => {
@@ -95,6 +109,8 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
     };
 
     const hasAccess = (targetId: string) => {
+        if (user?.role === 'admin') return true; // Admin has full access
+
         if (enrolledTargetIds.includes(targetId)) return true;
 
         // Check for bundles
@@ -346,6 +362,12 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
         await fetchData();
     };
 
+    const updateSubjectLock = async (id: string, isLocked: boolean) => {
+        const { error } = await supabase.from('subjects').update({ is_locked: isLocked }).eq('id', id);
+        if (error) console.error('Error updating subject lock', error);
+        await fetchData();
+    };
+
     const deleteSubject = async (id: string) => {
         const { error } = await supabase.from('subjects').delete().eq('id', id);
         if (error) console.error(error);
@@ -380,6 +402,12 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
 
     const updateChapter = async (subjectId: string, chapterId: string, title: string) => {
         const { error } = await supabase.from('chapters').update({ title }).eq('id', chapterId);
+        if (error) console.error(error);
+        await fetchData();
+    };
+
+    const updateChapterLock = async (chapterId: string, isLocked: boolean) => {
+        const { error } = await supabase.from('chapters').update({ is_locked: isLocked }).eq('id', chapterId);
         if (error) console.error(error);
         await fetchData();
     };
@@ -458,10 +486,12 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             deleteQuiz,
             addSubject,
             updateSubject,
+            updateSubjectLock,
             deleteSubject,
             reorderSubjects,
             addChapter,
             updateChapter,
+            updateChapterLock,
             deleteChapter,
             addTopic,
             updateTopic,

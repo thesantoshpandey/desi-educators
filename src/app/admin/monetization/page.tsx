@@ -35,9 +35,9 @@ const DEFAULT_LOCKS: LockSettings = {
 const SubjectLockManager = ({ subject, locks, toggleLock }: {
     subject: string,
     locks: LockSettings,
-    toggleLock: (key: string) => void
+    toggleLock: (key: string, type: 'subject' | 'chapter', id: void) => void
 }) => {
-    const { getChaptersBySubject, updateMaterial } = useContent();
+    const { getChaptersBySubject, updateMaterial, updateChapterLock } = useContent();
     const [expanded, setExpanded] = useState(false);
     const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
     const chapters = getChaptersBySubject(subject);
@@ -78,7 +78,7 @@ const SubjectLockManager = ({ subject, locks, toggleLock }: {
                         <input
                             type="checkbox"
                             checked={!!locks[subject]}
-                            onChange={() => toggleLock(subject)}
+                            onChange={() => toggleLock(subject, 'subject', undefined)}
                         />
                         <span className="slider round"></span>
                     </label>
@@ -122,7 +122,7 @@ const SubjectLockManager = ({ subject, locks, toggleLock }: {
                                                 <input
                                                     type="checkbox"
                                                     checked={isLocked}
-                                                    onChange={() => toggleLock(lockKey)}
+                                                    onChange={() => updateChapterLock(chapter.id, !isLocked)}
                                                 />
                                                 <span className="slider round"></span>
                                             </label>
@@ -454,14 +454,14 @@ export default function MonetizationPage() {
     const { subjects } = useContent();
     const [activeTab, setActiveTab] = useState<'locks' | 'products' | 'coupons'>('locks');
 
-    // ... (Keep existing state hooks for Locks/Coupons if needed, or refactor to separate components entirely)
-    // For cleaner code, let's assume SubjectLockManager and Coupons logic is moved or kept here if we don't delete.
-    // To save context space, I will re-implement the structure surrounding the tabs.
-
-    // Existing State
-    // Existing State
     const [coupons, setCoupons] = useState<Coupon[]>([]);
-    const [locks, setLocks] = useState<LockSettings>(DEFAULT_LOCKS); // Keep locks local for now as visual toggle
+    const locks: LockSettings = {}; // Derived from DB
+
+    subjects.forEach(s => {
+        if (s.is_locked) locks[s.id] = true;
+    });
+
+    const { getChaptersBySubject, updateSubjectLock } = useContent();
 
     // Derived or unused state removed (itemPrices handled via context now)
 
@@ -475,10 +475,6 @@ export default function MonetizationPage() {
             if (data) setCoupons(data);
         };
         fetchCoupons();
-
-        // Load locks (Local Preference for UI)
-        const storedLocks = localStorage.getItem('contentLocks');
-        if (storedLocks) setLocks(JSON.parse(storedLocks));
     }, []);
 
     const handleAddCoupon = async (e: React.FormEvent) => {
@@ -511,10 +507,11 @@ export default function MonetizationPage() {
         }
     };
 
-    const toggleLock = (subject: string) => {
-        const updated = { ...locks, [subject]: !locks[subject] };
-        setLocks(updated);
-        localStorage.setItem('contentLocks', JSON.stringify(updated));
+    const toggleLock = (id: string, type: 'subject' | 'chapter') => {
+        if (type === 'subject') {
+            updateSubjectLock(id, !locks[id]);
+        }
+        // Chapters handled directly in component
     };
 
     return (
@@ -558,7 +555,7 @@ export default function MonetizationPage() {
                                     key={subject.id}
                                     subject={subject.id}
                                     locks={locks}
-                                    toggleLock={toggleLock}
+                                    toggleLock={(id) => toggleLock(id, 'subject')}
                                 />
                             ))}
                         </div>
