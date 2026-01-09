@@ -197,6 +197,7 @@ const ProductManager = () => {
         name: '',
         description: '',
         price: '',
+        originalPrice: '',
         type: 'bundle',
         targetIds: '',
         features: '',
@@ -222,6 +223,7 @@ const ProductManager = () => {
             ...formData,
             id: formData.id || Date.now().toString(),
             price: Number(formData.price),
+            originalPrice: formData.originalPrice ? Number(formData.originalPrice) : undefined,
             targetIds: formData.targetIds.split(',').map(s => s.trim()),
             features: formData.features.split(',').map(s => s.trim())
         };
@@ -241,6 +243,7 @@ const ProductManager = () => {
         setFormData({
             ...product,
             price: product.price.toString(),
+            originalPrice: product.originalPrice ? product.originalPrice.toString() : '',
             targetIds: product.targetIds.join(', '),
             features: product.features.join(', '),
             isRecommended: product.isRecommended || false,
@@ -259,10 +262,14 @@ const ProductManager = () => {
                         <Input value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} required placeholder="e.g. Physics Bundle" />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500 }}>Price (₹)</label>
                             <Input type="number" value={formData.price || ''} onChange={e => setFormData({ ...formData, price: e.target.value })} required />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500 }}>Original Price</label>
+                            <Input type="number" value={formData.originalPrice || ''} onChange={e => setFormData({ ...formData, originalPrice: e.target.value })} placeholder="Optional" />
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500 }}>Type</label>

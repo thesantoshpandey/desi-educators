@@ -14,6 +14,7 @@ export interface Product {
     isRecommended?: boolean;
     color?: string; // Hex code for UI styling
     image?: string;
+    originalPrice?: number;
 }
 
 // Initial default products to maintain backward compatibility
@@ -22,7 +23,8 @@ const DEFAULT_PRODUCTS: Product[] = [
         id: 'full-year',
         name: 'NEET 2026 Full Course',
         description: 'Complete access to Physics, Chemistry, and Biology',
-        price: 14999,
+        price: 9999,
+        originalPrice: 24999,
         type: 'bundle',
         targetIds: ['full_bundle', 'physics', 'chemistry', 'biology'],
         features: ['All 3 Subjects', 'Live Classes', 'Physical Study Material', 'Personal Mentor', 'Doubt Support'],
@@ -35,6 +37,7 @@ const DEFAULT_PRODUCTS: Product[] = [
         name: 'Physics Crash Course',
         description: 'Complete Physics in 60 Days',
         price: 2499,
+        originalPrice: 4999,
         type: 'subject',
         targetIds: ['physics'],
         features: ['Complete Physics in 60 Days', 'Formula Sheets', 'Daily Practice Problems', 'Previous Year Questions'],
@@ -46,6 +49,7 @@ const DEFAULT_PRODUCTS: Product[] = [
         name: 'All India Test Series',
         description: 'Comprehensive Mock Tests for NEET',
         price: 999,
+        originalPrice: 1999,
         type: 'test_series',
         targetIds: ['test_series'],
         features: ['50+ Mock Tests', 'AIR Prediction', 'Detailed Analytics', 'Video Solutions'],
@@ -75,6 +79,7 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
             const { data, error } = await supabase.from('products').select('*');
             if (error) {
                 console.error('Error loading products:', error);
+                setProducts(DEFAULT_PRODUCTS); // Fallback
             } else if (data) {
                 // Map snake_case DB fields to camelCase if needed, but here we used matching names in SQL except arrays
                 // Arrays in Postgres text[] come back as arrays in JS, so it should match Product interface
@@ -84,6 +89,7 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
                     name: p.name,
                     description: p.description,
                     price: p.price,
+                    originalPrice: p.original_price, // Map from DB
                     type: p.type,
                     targetIds: p.target_ids || [],
                     features: p.features || [],
@@ -92,6 +98,7 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
                     color: p.color,
                     image: p.image
                 }));
+
                 setProducts(mapped);
             }
             setIsLoaded(true);

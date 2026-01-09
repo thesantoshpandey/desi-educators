@@ -188,9 +188,39 @@ export default function PricingPage() {
                                                 <BookOpen size={24} color={plan.color || '#FF5722'} />}
                                     </div>
                                     <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px' }}>{plan.name}</h3>
-                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                                        <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#1f2937' }}>₹{plan.price.toLocaleString()}</span>
-                                        <span style={{ color: '#6b7280' }}>/ one-time</span>
+
+                                    {/* Pricing Section with Urgency */}
+                                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', marginBottom: '16px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            {plan.originalPrice && plan.originalPrice > plan.price && (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '-4px' }}>
+                                                    <span style={{
+                                                        textDecoration: 'line-through',
+                                                        color: '#9CA3AF',
+                                                        fontSize: '1.1rem',
+                                                        fontWeight: 500
+                                                    }}>
+                                                        ₹{plan.originalPrice.toLocaleString()}
+                                                    </span>
+                                                    <span style={{
+                                                        backgroundColor: '#DC2626',
+                                                        color: 'white',
+                                                        fontSize: '0.75rem',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '12px',
+                                                        fontWeight: 700
+                                                    }}>
+                                                        SAVE {Math.round(((plan.originalPrice - plan.price) / plan.originalPrice) * 100)}%
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                                                <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#1f2937' }}>
+                                                    ₹{plan.price.toLocaleString()}
+                                                </span>
+                                                <span style={{ color: '#6b7280' }}>/ one-time</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
