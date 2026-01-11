@@ -67,34 +67,70 @@ export async function GET(
         return new NextResponse('File not found', { status: 404 });
     }
 
+    // 4. Watermark Logic
     try {
-        // 4. Watermark Logic
         const arrayBuffer = await fileData.arrayBuffer();
         const pdfDoc = await PDFDocument.load(arrayBuffer);
         const pages = pdfDoc.getPages();
-        const { width, height } = pages[0].getSize();
 
-        // Watermark Text
-        const text = `${user.email} | ${user.id.slice(0, 8)} | ${new Date().toISOString().split('T')[0]}`;
+        // Fetch User Profile for Phone Number
+        let phone = user.phone || '';
+        try {
+            const { data: profile } = await supabaseUserClient
+                .from('profiles')
+                .select('phone')
+                .eq('id', user.id)
+                .single();
+            if (profile?.phone) {
+                phone = profile.phone;
+            }
+        } catch (err) {
+            console.warn('Failed to fetch profile phone for watermark');
+        }
 
-        // Draw diagonal text on every page
+        // Watermark Text Construction
+        const identifier = phone ? `${user.email} | ${phone}` : `${user.email}`;
+        const dateStr = new Date().toISOString().split('T')[0];
+        const text = `${identifier} | ${user.id.slice(0, 8)} | ${dateStr}`;
+
+        const font = await pdfDoc.embedFont('Helvetica'); // Standard font
+        const textSize = 18;
+        const textWidth = font.widthOfTextAtSize(text, textSize);
+        const textHeight = font.heightAtSize(textSize);
+
         pages.forEach(page => {
-            page.drawText(text, {
-                x: 50,
+            const { width, height } = page.getSize();
+
+            // Tiling Configuration
+            const horizontalGap = 100;
+            const verticalGap = 150;
+
+            // Calculate grid approximate
+            // We'll just loop through coordinates to cover the page
+            for (let y = 0; y < height; y += verticalGap) {
+                for (let x = -100; x < width; x += (textWidth + horizontalGap)) {
+                    // Stagger odd rows
+                    const stagger = (Math.floor(y / verticalGap) % 2) * (textWidth / 2);
+
+                    page.drawText(text, {
+                        x: x + stagger,
+                        y: y,
+                        size: textSize,
+                        color: rgb(0.6, 0.6, 0.6),
+                        rotate: degrees(30), // Slightly less steep
+                        opacity: 0.15, // Subtle
+                    });
+                }
+            }
+
+            // Central Warning (Darker)
+            page.drawText('DESI EDUCATORS - DO NOT SHARE', {
+                x: width / 2 - 150,
                 y: height / 2,
                 size: 20,
-                color: rgb(0.7, 0.7, 0.7), // Gray transparency simulation
-                rotate: degrees(45),
-                opacity: 0.3,
-            });
-
-            page.drawText('DESI EDUCATORS - DO NOT SHARE', {
-                x: 50,
-                y: height / 2 - 50,
-                size: 15,
-                color: rgb(0.9, 0.2, 0.2), // Redish
-                rotate: degrees(45),
-                opacity: 0.2,
+                color: rgb(0.8, 0.2, 0.2),
+                rotate: degrees(30),
+                opacity: 0.25,
             });
         });
 
@@ -105,13 +141,15 @@ export async function GET(
             headers: {
                 'Content-Type': 'application/pdf',
                 'Content-Disposition': `inline; filename="${fileId.split('/').pop()}"`,
-                // Prevent Caching ensuring watermark is always fresh
                 'Cache-Control': 'no-store, max-age=0',
             },
         });
 
     } catch (err) {
-        console.error('Streaming error:', err);
-        return new NextResponse('Internal Server Error', { status: 500 });
+        console.error('Streaming/Watermarking error:', err);
+        // Fallback: If watermark fails, decide whether to block or send un-watermarked. 
+        // Best security practice: fail closed. But for robust UX, maybe retry?
+        // Let's return 500 for now.
+        return new NextResponse('Error generating secure document', { status: 500 });
     }
 }
