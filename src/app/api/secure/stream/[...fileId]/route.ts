@@ -1,22 +1,27 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 import { PDFDocument, rgb, degrees } from 'pdf-lib';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: Promise<{ fileId: string }> }
+    { params }: { params: Promise<{ fileId: string[] }> }
 ) {
-    const { fileId } = await params;
+    const { fileId: fileIdArray } = await params;
+    const fileId = fileIdArray.join('/');
 
     // 1. Auth Check (Must use standard client to verify user cookie)
-    const supabaseUserClient = createClient(
+    const supabaseUserClient = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
                 getAll() { return req.cookies.getAll() },
+                setAll(cookiesToSet) {
+                    // Optional: Handle cookie updates if needed, but for GET stream it's usually not critical
+                    // unless token refresh happens.
+                }
             },
         }
     );
@@ -96,10 +101,10 @@ export async function GET(
         const pdfBytes = await pdfDoc.save();
 
         // 5. Stream Response
-        return new NextResponse(pdfBytes, {
+        return new NextResponse(Buffer.from(pdfBytes), {
             headers: {
                 'Content-Type': 'application/pdf',
-                'Content-Disposition': `inline; filename="${fileId}"`,
+                'Content-Disposition': `inline; filename="${fileId.split('/').pop()}"`,
                 // Prevent Caching ensuring watermark is always fresh
                 'Cache-Control': 'no-store, max-age=0',
             },
