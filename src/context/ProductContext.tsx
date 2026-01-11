@@ -17,46 +17,8 @@ export interface Product {
     originalPrice?: number;
 }
 
-// Initial default products to maintain backward compatibility
-const DEFAULT_PRODUCTS: Product[] = [
-    {
-        id: 'full-year',
-        name: 'NEET 2026 Full Course',
-        description: 'Complete access to Physics, Chemistry, and Biology',
-        price: 9999,
-        originalPrice: 24999,
-        type: 'bundle',
-        targetIds: ['full_bundle', 'physics', 'chemistry', 'biology'],
-        features: ['All 3 Subjects', 'Live Classes', 'Physical Study Material', 'Personal Mentor', 'Doubt Support'],
-        isActive: true,
-        isRecommended: true,
-        color: '#DC2626'
-    },
-    {
-        id: 'crash-course',
-        name: 'Physics Crash Course',
-        description: 'Complete Physics in 60 Days',
-        price: 2499,
-        originalPrice: 4999,
-        type: 'subject',
-        targetIds: ['physics'],
-        features: ['Complete Physics in 60 Days', 'Formula Sheets', 'Daily Practice Problems', 'Previous Year Questions'],
-        isActive: true,
-        color: '#FF5722'
-    },
-    {
-        id: 'test-series',
-        name: 'All India Test Series',
-        description: 'Comprehensive Mock Tests for NEET',
-        price: 999,
-        originalPrice: 1999,
-        type: 'test_series',
-        targetIds: ['test_series'],
-        features: ['50+ Mock Tests', 'AIR Prediction', 'Detailed Analytics', 'Video Solutions'],
-        isActive: true,
-        color: '#FFC107'
-    }
-];
+// Initial default products (Empty to avoid ghost data)
+const DEFAULT_PRODUCTS: Product[] = [];
 
 interface ProductContextType {
     products: Product[];
