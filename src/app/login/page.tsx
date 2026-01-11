@@ -3,19 +3,19 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock } from 'lucide-react';
-import { Button, Card, Input } from '@/components/ui';
-import styles from '../(auth)/auth.module.css';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { Button, Input, Card } from '@/components/ui';
+import { Mail, Lock } from 'lucide-react';
+import styles from './LoginPage.module.css';
 
 export default function LoginPage() {
-    const router = useRouter();
-    const { login } = useAuth();
-
-    const [isLoading, setIsLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+    const { login } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,12 +25,20 @@ export default function LoginPage() {
         try {
             await login(email, password);
 
-            // Check if the user is an admin after successful login
-            // Note: In real app, we should check claim or profile.
-            // For now, based on email assumption or just redirect to dashboard
+            // Fetch role to determine redirect
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
 
-            if (email === 'vishal.pandey1912@gmail.com') {
-                router.push('/admin/dashboard');
+                if (profile?.role === 'admin') {
+                    router.push('/admin/content'); // Better landing page than dashboard often
+                } else {
+                    router.push('/dashboard');
+                }
             } else {
                 router.push('/dashboard');
             }

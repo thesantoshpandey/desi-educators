@@ -35,28 +35,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             try {
                 const { data: { session }, error } = await supabase.auth.getSession();
 
-                if (error) {
-                    throw error;
-                }
+                if (error) throw error;
 
                 if (session?.user) {
-                    setUser(mapSupabaseUser(session.user));
+                    await fetchUserWithRole(session.user);
                 }
             } catch (error: any) {
+                // ... error handling ...
                 const errMsg = error?.message?.toLowerCase() || '';
                 if (errMsg.includes('invalid refresh token') || errMsg.includes('refresh token not found')) {
-                    // Suppress the error logging for this expected case
                     console.warn("Session expired (Invalid Refresh Token), signing out...");
-
-                    // Clear Supabase local storage keys manually to prevent loops
-                    if (typeof window !== 'undefined') {
-                        // Removed aggressive localStorage.clear() to prevent session instability
-                    }
-
                     await supabase.auth.signOut();
                     setUser(null);
                 } else {
-                    // Log actual unexpected errors
                     console.error("Auth Init Error:", error);
                 }
             } finally {
@@ -70,34 +61,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log("Auth State Change:", event);
             if (session?.user) {
-                setUser(mapSupabaseUser(session.user));
+                await fetchUserWithRole(session.user);
             } else {
                 setUser(null);
             }
-
-            // Handle specific events
             if (event === 'SIGNED_OUT') {
                 setUser(null);
                 router.refresh();
             }
-
             setIsLoading(false);
         });
 
         return () => subscription.unsubscribe();
     }, [router]);
 
-    const mapSupabaseUser = (sbUser: SupabaseUser): User => {
-        return {
-            id: sbUser.id,
-            email: sbUser.email || '',
-            // Use metadata name or fallback to email prefix
-            name: sbUser.user_metadata?.name || sbUser.email?.split('@')[0] || 'User',
-            phone: sbUser.phone || sbUser.user_metadata?.phone || '',
-            // Simple role logic: If email matches admin, they are admin. 
-            // In real app, check 'profiles' table or app_metadata.
-            role: sbUser.email === 'vishal.pandey1912@gmail.com' ? 'admin' : 'student'
-        };
+    const fetchUserWithRole = async (sbUser: SupabaseUser) => {
+        try {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', sbUser.id)
+                .single();
+
+            setUser({
+                id: sbUser.id,
+                email: sbUser.email || '',
+                name: sbUser.user_metadata?.name || sbUser.email?.split('@')[0] || 'User',
+                phone: sbUser.phone || sbUser.user_metadata?.phone || '',
+                role: (profile?.role as 'admin' | 'student') || 'student'
+            });
+        } catch (error) {
+            console.error('Error fetching user profile:', error);
+            // Fallback if profile fetch fails
+            setUser({
+                id: sbUser.id,
+                email: sbUser.email || '',
+                name: sbUser.user_metadata?.name || 'User',
+                role: 'student'
+            });
+        }
     };
 
     const login = async (email: string, password: string) => {
@@ -137,7 +139,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             if (profileError) {
                 console.error("Error creating profile:", profileError);
-                // Optional: We could delete the auth user if profile fails, but let's keep it simple
             }
         }
         return true;

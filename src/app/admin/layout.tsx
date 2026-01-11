@@ -30,10 +30,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     return;
                 }
 
-                // Check Admin Email
-                const isAdmin = user.email?.toLowerCase() === 'vishal.pandey1912@gmail.com'.toLowerCase();
+                // Check Admin Role from Profiles
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
 
-                if (isAdmin) {
+                if (profile?.role === 'admin') {
                     setIsAuthenticated(true);
                     if (pathname === '/admin/login') {
                         router.push('/admin/content');

@@ -14,14 +14,7 @@ interface User {
     joinedAt?: string;
 }
 
-// Mock Data for permanent testing
-const MOCK_USERS: User[] = [
-    { name: 'Rahul Sharma', email: 'rahul.s@example.com', role: 'student', status: 'active', joinedAt: '12 Dec, 2024' },
-    { name: 'Priya Patel', email: 'priya.p@example.com', role: 'student', status: 'active', joinedAt: '10 Dec, 2024' },
-    { name: 'Amit Verma', email: 'amit.v@example.com', role: 'student', status: 'blocked', joinedAt: '05 Dec, 2024' },
-    { name: 'Sneha Gupta', email: 'sneha.g@example.com', role: 'student', status: 'active', joinedAt: '14 Dec, 2024' },
-    { name: 'Vikram Singh', email: 'vikram.s@example.com', role: 'student', status: 'active', joinedAt: '15 Dec, 2024' },
-];
+// Mock Data Removed
 
 export default function UsersManagementPage() {
     const [users, setUsers] = useState<User[]>([]);
@@ -29,67 +22,39 @@ export default function UsersManagementPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [userPlans, setUserPlans] = useState<Record<string, string[]>>({});
+    const [isLoading, setIsLoading] = useState(false);
+
+    const fetchUsers = async () => {
+        // 1. Fetch Profiles from Supabase
+        const { data: profiles, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching users:', error);
+            return;
+        }
+
+        // 2. Map to UI User format
+        let dbUsers: User[] = (profiles || []).map(p => ({
+            name: p.name || 'Unknown',
+            email: p.email,
+            role: p.role || 'student',
+            status: 'active', // Default to active
+            joinedAt: p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/A'
+        }));
+
+        setUsers(dbUsers);
+    };
 
     useEffect(() => {
-        const fetchUsers = async () => {
-            // 1. Fetch Profiles from Supabase
-            const { data: profiles, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error('Error fetching users:', error);
-                return;
-            }
-
-            // 2. Map to UI User format
-            let dbUsers: User[] = (profiles || []).map(p => ({
-                name: p.name || 'Unknown',
-                email: p.email,
-                role: p.role || 'student',
-                status: 'active', // Default to active as we don't have block status in DB yet
-                joinedAt: p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/A'
-            }));
-
-            // 3. Ensure Super Admin is visible
-            if (!dbUsers.find(u => u.email === 'admin@desi.com')) {
-                dbUsers.unshift({ name: 'Super Admin', email: 'admin@desi.com', role: 'admin', status: 'active', joinedAt: 'System' });
-            }
-
-            setUsers(dbUsers);
-
-            // 4. Fetch Plans (Optional: Fetching orders to show badges)
-            // For now, we'll skip complex join and just show 'None' or fetch real orders later.
-            // Let's at least keep the mock logic if available or just empty.
-            setUserPlans({});
-        };
-
         fetchUsers();
     }, []);
 
     const toggleUserStatus = (email: string) => {
-        const updatedUsers = users.map(u => {
-            if (u.email === email) {
-                return { ...u, status: u.status === 'active' ? 'blocked' : 'active' };
-            }
-            return u;
-        });
-        setUsers(updatedUsers as User[]);
-        // Save status changes
-        // Note: For full persistence we'd need to update the source (mock vs local) carefully
-        // Simplified: Save purely local users back to local storage
-        const storageUsers = updatedUsers.filter(u => u.role !== 'admin').map(u => ({
-            name: u.name,
-            email: u.email,
-            password: 'student123', // Retain/Fallback
-            role: u.role,
-            status: u.status,
-            joinedAt: u.joinedAt
-        }));
-        // We actually want to save only 'new' users to localStorage in this hybrid model, 
-        // but for simplicity let's save everyone so status persists
-        localStorage.setItem('users', JSON.stringify(storageUsers));
+        // TODO: Implement API for blocking users
+        alert('Blocking users is not yet connected to the backend API.');
     };
 
     const handleAddUser = () => {
@@ -102,25 +67,39 @@ export default function UsersManagementPage() {
         setIsModalOpen(true);
     };
 
-    const handleSaveUser = (data: any) => {
+    const handleSaveUser = async (data: any) => {
+        setIsLoading(true);
         if (editingUser) {
-            // Update
-            const updatedUsers = users.map(u => u.email === editingUser.email ? { ...u, ...data } : u);
-            setUsers(updatedUsers as User[]);
+            // Update Logic (TODO: Implement PUT API)
+            alert('Editing users is not yet implemented in the backend API.');
+            setIsLoading(false);
         } else {
-            // Create
-            const newUser: User = {
-                ...data,
-                role: 'student',
-                status: 'active',
-                joinedAt: new Date().toLocaleDateString()
-            };
-            setUsers([...users, newUser]);
+            // Create New User via API
+            try {
+                const response = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...data,
+                        role: 'student' // Force role for now or allow selection if modal supports it
+                    }),
+                });
 
-            // Persist to local storage for AuthContext to pick up
-            const currentStorage = JSON.parse(localStorage.getItem('users') || '[]');
-            currentStorage.push({ ...newUser, password: data.password });
-            localStorage.setItem('users', JSON.stringify(currentStorage));
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to create user');
+                }
+
+                alert('User created successfully!');
+                setIsModalOpen(false);
+                fetchUsers(); // Refresh list
+            } catch (error: any) {
+                console.error('Error creating user:', error);
+                alert(`Error: ${error.message}`);
+            } finally {
+                setIsLoading(false);
+            }
         }
     };
 

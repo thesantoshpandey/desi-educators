@@ -46,15 +46,17 @@ export async function middleware(request: NextRequest) {
             }
         } else {
             // User is logged in, check role
-            // User is logged in, check role
-            const userEmail = user.email?.toLowerCase();
-            const adminEmail = 'vishal.pandey1912@gmail.com'.toLowerCase();
+            // User is logged in, check role from DB
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
 
-            // EXACT MATCH for security
-            const isAdmin = userEmail === adminEmail;
+            const isAdmin = profile?.role === 'admin';
 
             if (!isAdmin) {
-                console.warn(`Unauthorized admin access attempt by ${userEmail} (Expected: ${adminEmail})`);
+                console.warn(`Unauthorized admin access attempt by ${user.email}`);
                 return NextResponse.redirect(new URL('/dashboard', request.url));
             }
 

@@ -11,38 +11,38 @@ export default function AdminDashboardPage() {
         revenue: 0,
         activeStudents: 0,
         totalOrders: 0,
-        pendingOrders: 0 // Mock, or derive from 'Pending' status if any
+        pendingOrders: 0, // Mock, or derive from 'Pending' status if any
+        conversionRate: 0 // Dynamic Conversion Rate
     });
     const [recentOrders, setRecentOrders] = useState<any[]>([]);
     const [topCourses, setTopCourses] = useState<{ name: string, count: number, percent: number }[]>([]);
 
     useEffect(() => {
-        const fetchOrders = async () => {
+        const fetchDashboardData = async () => {
             const { supabase } = await import('@/lib/supabase');
 
-            // Fetch Orders from Supabase
-            const { data: dbOrders, error } = await supabase
+            // 1. Fetch Orders
+            const { data: dbOrders, error: ordersError } = await supabase
                 .from('orders')
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            if (error) {
-                console.error('Error fetching orders:', error);
+            if (ordersError) {
+                console.error('Error fetching orders:', ordersError);
                 return;
             }
 
             const orders = dbOrders || [];
 
-            // Extract unique user IDs to fetch profile data manually (since no FK exists)
-            const userIds = Array.from(new Set(orders.map((o: any) => o.user_id).filter(Boolean)));
-
+            // 2. Fetch User Profiles for Orders
+            const orderUserIds = Array.from(new Set(orders.map((o: any) => o.user_id).filter(Boolean)));
             let userMap: Record<string, any> = {};
 
-            if (userIds.length > 0) {
+            if (orderUserIds.length > 0) {
                 const { data: profiles, error: profileError } = await supabase
                     .from('profiles')
                     .select('id, name, email')
-                    .in('id', userIds);
+                    .in('id', orderUserIds);
 
                 if (!profileError && profiles) {
                     profiles.forEach(p => {
@@ -51,26 +51,28 @@ export default function AdminDashboardPage() {
                 }
             }
 
-            // Calculate Revenue
+            // 3. Fetch Total Users for Conversion Rate
+            const { count: totalUsers } = await supabase
+                .from('profiles')
+                .select('*', { count: 'exact', head: true });
+
+            // 4. Calculate Stats
             const totalRevenue = orders.reduce((acc: number, order: any) => {
                 if (order.status === 'Success') {
-                    // Handle potential string formats like "₹500" or just "500"
                     const amountStr = order.amount.toString().replace(/[^\d.]/g, '');
-                    const amount = parseFloat(amountStr) || 0;
-                    return acc + amount;
+                    return acc + (parseFloat(amountStr) || 0);
                 }
                 return acc;
             }, 0);
 
-            // Calculate Active Students (Unique Users)
-            // Note: In a real app we might count 'enrollments', but orders work for sales unique users
-            // Using user_id if available, or fallback to user name if old data
-            const uniqueStudents = new Set(orders.map((o: any) => o.user_id || o.user)).size;
+            const uniqueBuyers = new Set(orders.map((o: any) => o.user_id || o.user)).size;
 
-            // Top Courses
+            // Conversion Rate: Unique Buyers / Total Registered Users
+            const denominator = totalUsers || uniqueBuyers || 1;
+            const conversionRate = denominator > 0 ? (uniqueBuyers / denominator) * 100 : 0;
+
             const courseCounts: { [key: string]: number } = {};
             orders.forEach((o: any) => {
-                // Determine course name. Logic might need adjustment if DB field varies
                 const planName = o.plan_name || o.plan || 'Unknown';
                 courseCounts[planName] = (courseCounts[planName] || 0) + 1;
             });
@@ -84,14 +86,15 @@ export default function AdminDashboardPage() {
                     percent: orders.length > 0 ? Math.round((count / orders.length) * 100) : 0
                 }));
 
+            // 5. Update State
             setStats({
                 revenue: totalRevenue,
-                activeStudents: uniqueStudents,
+                activeStudents: uniqueBuyers,
                 totalOrders: orders.length,
-                pendingOrders: orders.filter((o: any) => o.status === 'Pending').length
+                pendingOrders: orders.filter((o: any) => o.status === 'Pending').length,
+                conversionRate: conversionRate
             });
 
-            // Attach profile data to orders for display
             const enrichedOrders = orders.map((o: any) => ({
                 ...o,
                 profile: userMap[o.user_id]
@@ -101,7 +104,7 @@ export default function AdminDashboardPage() {
             setTopCourses(sortedCourses);
         };
 
-        fetchOrders();
+        fetchDashboardData();
     }, []);
 
     return (
@@ -139,7 +142,7 @@ export default function AdminDashboardPage() {
                 />
                 <StatCard
                     label="Conversion Rate"
-                    value="4.2%"
+                    value={`${stats.conversionRate.toFixed(1)}%`}
                     trend="Avg."
                     trendUp={true}
                     icon={<TrendingUp size={24} />}
