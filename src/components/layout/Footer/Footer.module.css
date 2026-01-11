@@ -44,27 +44,34 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: var(--spacing-xl);
+    width: 100%;
 }
 
 .column {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
 }
 
 .column h4 {
-    color: var(--text-primary);
+    color: var(--text-light); /* Muted color for headers */
+    font-size: 0.75rem; /* Smaller font size */
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
     margin-bottom: var(--spacing-xs);
 }
 
 .column a {
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    padding: 2px 0;
+    transition: color 0.2s ease;
 }
 
 .column a:hover {
     color: var(--primary-color);
-    text-decoration: underline;
+    text-decoration: none; /* Remove underline for cleaner look */
 }
 
 .copyright {
