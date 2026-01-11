@@ -24,10 +24,51 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper to get/set device ID
+const getDeviceId = () => {
+    if (typeof window === 'undefined') return null;
+    let id = localStorage.getItem('device_session_id');
+    if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem('device_session_id', id);
+    }
+    return id;
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
+
+    // Session Check Function
+    const checkSessionValidity = async (userId: string) => {
+        const deviceId = getDeviceId();
+        if (!deviceId) return; // Should not happen in client
+
+        const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('current_session_id')
+            .eq('id', userId)
+            .single();
+
+        if (!error && profile) {
+            // If DB has a session ID and it doesn't match ours, logout
+            if (profile.current_session_id && profile.current_session_id !== deviceId) {
+                console.warn('Session mismatch. Logged in on another device.');
+                await supabase.auth.signOut();
+                setUser(null);
+                localStorage.removeItem('device_session_id'); // Clear invalid ID
+                alert('You have been logged out because your account was used on another device.');
+                router.push('/login');
+            } else if (!profile.current_session_id) {
+                // If DB is empty (legacy or cleared), claim it
+                await supabase
+                    .from('profiles')
+                    .update({ current_session_id: deviceId })
+                    .eq('id', userId);
+            }
+        }
+    };
 
     useEffect(() => {
         // Initialize Session
@@ -39,9 +80,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
                 if (session?.user) {
                     await fetchUserWithRole(session.user);
+
+                    // Initial Device Check on Load
+                    const deviceId = getDeviceId();
+                    if (deviceId) {
+                        // We do a check. If it's a resume, we want to verify we are still valid.
+                        // However, if we are valid (or DB is null), we ensure DB matches us.
+                        // But we must NOT overwrite if DB has someone else.
+                        await checkSessionValidity(session.user.id);
+                    }
                 }
             } catch (error: any) {
-                // ... error handling ...
                 const errMsg = error?.message?.toLowerCase() || '';
                 if (errMsg.includes('invalid refresh token') || errMsg.includes('refresh token not found')) {
                     console.warn("Session expired (Invalid Refresh Token), signing out...");
@@ -59,7 +108,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Listen for changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log("Auth State Change:", event);
             if (session?.user) {
                 await fetchUserWithRole(session.user);
             } else {
@@ -74,6 +122,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         return () => subscription.unsubscribe();
     }, [router]);
+
+    // Polling Effect
+    useEffect(() => {
+        if (!user) return;
+
+        const interval = setInterval(() => {
+            checkSessionValidity(user.id);
+        }, 10000); // Check every 10 seconds
+
+        return () => clearInterval(interval);
+    }, [user]);
 
     const fetchUserWithRole = async (sbUser: SupabaseUser) => {
         try {
@@ -103,11 +162,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const login = async (email: string, password: string) => {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error, data } = await supabase.auth.signInWithPassword({
             email,
             password
         });
         if (error) throw error;
+
+        // On Login: Generate NEW Device ID and Claim Session
+        if (data.user) {
+            const newDeviceId = crypto.randomUUID();
+            localStorage.setItem('device_session_id', newDeviceId);
+
+            await supabase
+                .from('profiles')
+                .update({ current_session_id: newDeviceId })
+                .eq('id', data.user.id);
+        }
     };
 
     const signup = async (name: string, email: string, password: string, phone?: string) => {
@@ -123,7 +193,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             return false;
         }
         if (data.user) {
-            // Create Profile in Public Table
+            // New User: Generate ID
+            const newDeviceId = crypto.randomUUID();
+            localStorage.setItem('device_session_id', newDeviceId);
+
+            // Create Profile in Public Table with Session ID
             const { error: profileError } = await supabase
                 .from('profiles')
                 .insert([
@@ -133,7 +207,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         email: email,
                         phone: phone,
                         role: 'student', // Default role
-                        created_at: new Date().toISOString()
+                        created_at: new Date().toISOString(),
+                        current_session_id: newDeviceId
                     }
                 ]);
 
@@ -146,6 +221,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const logout = async () => {
         await supabase.auth.signOut();
+        localStorage.removeItem('device_session_id'); // Clear ID
         router.push('/login');
     };
 
