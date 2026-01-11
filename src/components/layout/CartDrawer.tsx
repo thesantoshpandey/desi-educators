@@ -9,6 +9,12 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
+declare global {
+    interface Window {
+        Razorpay: any;
+    }
+}
+
 export const CartDrawer = () => {
     const { isCartOpen, setIsCartOpen, items, removeFromCart, cartTotal, clearCart } = useCart();
     const { user } = useAuth();
@@ -75,6 +81,21 @@ export const CartDrawer = () => {
         }
     };
 
+    // Razorpay SDK Load Logic
+    React.useEffect(() => {
+        if (!isCartOpen) return;
+        if (typeof window !== 'undefined' && window.Razorpay) {
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        document.body.appendChild(script);
+        return () => {
+            // Cleanup if needed
+        };
+    }, [isCartOpen]);
+
     const handleCheckout = async () => {
         if (!user) {
             router.push('/login');
@@ -82,77 +103,120 @@ export const CartDrawer = () => {
             return;
         }
 
+        if (!window.Razorpay) {
+            alert('Payment SDK is loading... Please wait a moment and try again.');
+            return;
+        }
+
         const finalAmount = Math.max(0, cartTotal - discount);
-        const confirm = window.confirm(`Proceed to pay ₹${finalAmount}?`);
 
-        if (confirm) {
-            try {
-                // 1. Create Order
-                const orderId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
-                // In real app, we iterate if multiple plans? Usually one transaction per cart or summed up.
-                // For simplicity, we create specific orders per item or one bulk order?
-                // The current schema asks for 'plan_name'. Let's join them if multiple.
-                const planNames = items.map(i => i.name).join(', ');
+        // Prepare enrollments Payload (same logic as before to handle specific target expansion)
+        const enrollmentsToInsert: any[] = [];
+        items.forEach(item => {
+            const nameLower = item.name.toLowerCase();
+            const type = item.type;
 
-                const { error: orderError } = await supabase.from('orders').insert({
-                    id: orderId,
-                    user_id: user.id,
-                    plan_name: planNames,
-                    amount: finalAmount,
-                    status: 'Success'
+            if (item.targetIds && Array.isArray(item.targetIds)) {
+                item.targetIds.forEach(target => {
+                    enrollmentsToInsert.push({ id: target, itemType: type });
                 });
-
-                if (orderError) throw orderError;
-
-                // 2. Grant Access (Enrollments)
-                const enrollmentsToInsert: any[] = [];
-                items.forEach(item => {
-                    const nameLower = item.name.toLowerCase();
-                    const type = item.type;
-
-                    if (item.targetIds && Array.isArray(item.targetIds)) {
-                        item.targetIds.forEach(target => {
-                            enrollmentsToInsert.push({ user_id: user.id, target_id: target });
-                        });
-                    } else {
-                        // Legacy logic mapped to targets
-                        if (type === 'bundle' || nameLower.includes('full')) {
-                            enrollmentsToInsert.push({ user_id: user.id, target_id: 'full_bundle' });
-                            // Optionally expand bundle? No, keep it simple, check for bundle existence in access logic.
-                            // Actually, let's expand for granular access if needed, but 'full_bundle' key is easier.
-                            // Let's Add physics/chem/bio too just in case we deprecate bundle key.
-                            enrollmentsToInsert.push({ user_id: user.id, target_id: 'physics' });
-                            enrollmentsToInsert.push({ user_id: user.id, target_id: 'chemistry' });
-                            enrollmentsToInsert.push({ user_id: user.id, target_id: 'biology' });
-                        }
-                        if (nameLower.includes('physics')) enrollmentsToInsert.push({ user_id: user.id, target_id: 'physics' });
-                        if (nameLower.includes('chemistry')) enrollmentsToInsert.push({ user_id: user.id, target_id: 'chemistry' });
-                        if (nameLower.includes('biology')) enrollmentsToInsert.push({ user_id: user.id, target_id: 'biology' });
-                        if (type === 'test-series' || nameLower.includes('test series')) {
-                            enrollmentsToInsert.push({ user_id: user.id, target_id: 'test_series' });
-                        }
-                    }
-                });
-
-                // Deduplicate targets before insert
-                const uniqueEnrollments = Array.from(new Set(enrollmentsToInsert.map(e => e.target_id)))
-                    .map(targetId => ({ user_id: user.id, target_id: targetId }));
-
-                if (uniqueEnrollments.length > 0) {
-                    const { error: enrollError } = await supabase.from('enrollments').upsert(uniqueEnrollments, { onConflict: 'user_id, target_id' });
-                    if (enrollError) throw enrollError;
+            } else {
+                // Legacy logic mapped to targets
+                if (type === 'bundle' || nameLower.includes('full')) {
+                    enrollmentsToInsert.push({ id: 'full_bundle', itemType: 'bundle' });
+                    enrollmentsToInsert.push({ id: 'physics', itemType: 'subject' });
+                    enrollmentsToInsert.push({ id: 'chemistry', itemType: 'subject' });
+                    enrollmentsToInsert.push({ id: 'biology', itemType: 'subject' });
                 }
-
-                alert('Payment Successful! Access Granted.');
-                clearCart();
-                setIsCartOpen(false);
-                router.push('/dashboard');
-
-            } catch (err: any) {
-                console.error('Checkout Error:', err);
-                alert('Payment recorded locally but failed to save to server: ' + err.message);
-                // Fallback? No, we want strict sync.
+                if (nameLower.includes('physics')) enrollmentsToInsert.push({ id: 'physics', itemType: 'subject' });
+                if (nameLower.includes('chemistry')) enrollmentsToInsert.push({ id: 'chemistry', itemType: 'subject' });
+                if (nameLower.includes('biology')) enrollmentsToInsert.push({ id: 'biology', itemType: 'subject' });
+                if (type === 'test-series' || nameLower.includes('test series')) {
+                    enrollmentsToInsert.push({ id: 'test_series', itemType: 'test-series' });
+                }
             }
+        });
+
+        // Deduplicate
+        const uniqueItemsPayload = Array.from(new Set(enrollmentsToInsert.map(e => e.id)))
+            .map(id => enrollmentsToInsert.find(e => e.id === id));
+
+
+        try {
+            // 0. Get Auth Token
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) throw new Error('Session expired. Please login again.');
+
+            // 1. Create Order
+            const response = await fetch('/api/payment/create-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    amount: finalAmount,
+                    currency: 'INR',
+                    items: items // Optional metadata for order notes
+                })
+            });
+
+            const orderData = await response.json();
+            if (!response.ok) throw new Error(orderData.details || 'Order creation failed');
+
+            // 2. Initialize Razorpay
+            const options = {
+                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+                amount: orderData.amount,
+                currency: orderData.currency,
+                name: "Desi Educators",
+                description: "Cart Checkout",
+                order_id: orderData.id,
+                handler: async function (response: any) {
+                    // 3. Verify Payment
+                    const verifyRes = await fetch('/api/payment/verify', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature,
+                            items: uniqueItemsPayload, // Pass the expanded targets here
+                            amount: finalAmount
+                        })
+                    });
+
+                    const verifyData = await verifyRes.json();
+                    if (verifyRes.ok) {
+                        alert('Payment Successful! Access Granted.');
+                        clearCart();
+                        setIsCartOpen(false);
+                        router.push('/dashboard');
+                    } else {
+                        alert('Payment Verification Failed: ' + verifyData.message);
+                    }
+                },
+                prefill: {
+                    name: (user as any).user_metadata?.name || '',
+                    email: user.email,
+                    contact: user.phone || ''
+                },
+                theme: { color: "#DC2626" }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response: any) {
+                alert('Payment Failed: ' + response.error.description);
+            });
+            rzp.open();
+
+        } catch (err: any) {
+            console.error('Checkout Error:', err);
+            alert('Checkout failed: ' + err.message);
         }
     };
 
