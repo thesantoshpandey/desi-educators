@@ -102,8 +102,8 @@ export async function GET(
             const { width, height } = page.getSize();
 
             // Tiling Configuration
-            const horizontalGap = 100;
-            const verticalGap = 150;
+            const horizontalGap = 250; // Increased from 100
+            const verticalGap = 250;   // Increased from 150
 
             // Calculate grid approximate
             // We'll just loop through coordinates to cover the page
@@ -115,10 +115,10 @@ export async function GET(
                     page.drawText(text, {
                         x: x + stagger,
                         y: y,
-                        size: textSize,
+                        size: 16, // Slightly reduced from 18
                         color: rgb(0.6, 0.6, 0.6),
-                        rotate: degrees(30), // Slightly less steep
-                        opacity: 0.15, // Subtle
+                        rotate: degrees(30),
+                        opacity: 0.15,
                     });
                 }
             }
