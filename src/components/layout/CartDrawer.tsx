@@ -95,7 +95,7 @@ export const CartDrawer = () => {
                 const planNames = items.map(i => i.name).join(', ');
 
                 const { error: orderError } = await supabase.from('orders').insert({
-                    order_id: orderId,
+                    id: orderId,
                     user_id: user.id,
                     plan_name: planNames,
                     amount: finalAmount,
