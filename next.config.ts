@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+
+// Force Vercel Re-deployment: 2026-01-11T23:59:00
 const nextConfig: any = {
   /* config options here */
   async headers() {
