@@ -29,22 +29,49 @@ export const CartDrawer = () => {
     // Recalculate discount if cart total drops below discount (edge case) or just visually
     // Ideally validation happens on apply.
 
-    const applyCoupon = () => {
-        const coupons = JSON.parse(localStorage.getItem('siteCoupons') || '[]');
-        const coupon = coupons.find((c: any) => c.code === couponCode.toUpperCase() && c.active);
+    const [isValidatingCoupon, setIsValidatingCoupon] = React.useState(false);
 
-        if (coupon) {
-            let disc = 0;
-            if (coupon.type === 'percent') {
-                disc = Math.floor((cartTotal * coupon.discount) / 100);
-            } else {
-                disc = coupon.discount;
+    const applyCoupon = async () => {
+        const codeToApply = couponCode.trim().toUpperCase();
+
+        if (!codeToApply) return;
+        setIsValidatingCoupon(true);
+
+        try {
+            const { data: coupon, error } = await supabase
+                .from('coupons')
+                .select('*')
+                .eq('code', codeToApply)
+                .eq('active', true)
+                .single();
+
+            if (error) {
+                // If no rows found, .single() returns an error code PGRST116
+                if (error.code !== 'PGRST116') {
+                    console.error('Supabase error:', error);
+                    throw error;
+                }
             }
-            // Cap discount at total
-            setDiscount(Math.min(disc, cartTotal));
-        } else {
-            alert('Invalid or expired coupon code');
-            setDiscount(0);
+
+            if (coupon) {
+                let disc = 0;
+                if (coupon.type === 'percent') {
+                    disc = Math.floor((cartTotal * coupon.discount) / 100);
+                } else {
+                    disc = coupon.discount;
+                }
+                // Cap discount at total
+                const finalDiscount = Math.min(disc, cartTotal);
+                setDiscount(finalDiscount);
+            } else {
+                alert('Invalid or expired coupon code');
+                setDiscount(0);
+            }
+        } catch (err) {
+            console.error('Error applying coupon:', err);
+            alert('Failed to apply coupon. Please try again.');
+        } finally {
+            setIsValidatingCoupon(false);
         }
     };
 
