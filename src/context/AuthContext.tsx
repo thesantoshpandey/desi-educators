@@ -92,7 +92,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         // The PASSWORD_RECOVERY event handler will take care of claiming the session
                         const isRecovery = typeof window !== 'undefined' &&
                             (window.location.hash.includes('type=recovery') ||
-                                window.location.search.includes('type=recovery'));
+                                window.location.search.includes('type=recovery') ||
+                                window.location.pathname.startsWith('/update-password'));
 
                         if (!isRecovery) {
                             await checkSessionValidity(session.user.id);
@@ -157,6 +158,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (!user) return;
 
         const interval = setInterval(() => {
+            // Skip check if on update-password page
+            if (typeof window !== 'undefined' && window.location.pathname.startsWith('/update-password')) {
+                return;
+            }
             checkSessionValidity(user.id);
         }, 10000); // Check every 10 seconds
 
