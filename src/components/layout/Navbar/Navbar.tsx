@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Menu, X, BookOpen, GraduationCap, LayoutDashboard, UserCircle, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui';
 import styles from './Navbar.module.css';
@@ -33,15 +32,7 @@ export const Navbar = () => {
                 <div className={styles.container}>
                     {/* Logo */}
                     <Link href="/" className={styles.logo}>
-                        <div className={styles.logoIcon}>
-                            <Image
-                                src="/logo.png"
-                                alt="Desi Educators Logo"
-                                width={32}
-                                height={32}
-                                style={{ width: 'auto', height: '32px' }}
-                            />
-                        </div>
+                        <GraduationCap size={28} className={styles.logoIcon} />
                         <span>Desi Educators</span>
                     </Link>
 

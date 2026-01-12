@@ -30,9 +30,7 @@
 }
 
 .logoIcon {
-    display: flex;
-    /* Ensure it wraps the image tightly */
-    align-items: center;
+    color: var(--primary-color);
 }
 
 .desktopNav {
