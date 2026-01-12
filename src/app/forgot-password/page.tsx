@@ -21,7 +21,7 @@ export default function ForgotPasswordPage() {
 
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: 'https://desieducators.com/update-password',
+                redirectTo: `${window.location.origin}/auth/callback?next=/update-password`,
             });
 
             if (error) throw error;
