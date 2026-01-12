@@ -108,6 +108,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Listen for changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log("Auth Event:", event);
+
+            if (event === 'PASSWORD_RECOVERY') {
+                // FORCE Claim Session for Password Reset
+                if (session?.user) {
+                    const newDeviceId = crypto.randomUUID();
+                    localStorage.setItem('device_session_id', newDeviceId);
+
+                    await supabase
+                        .from('profiles')
+                        .update({ current_session_id: newDeviceId })
+                        .eq('id', session.user.id);
+
+                    // Allow time for DB update to propagate
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
+
             if (session?.user) {
                 await fetchUserWithRole(session.user);
             } else {
