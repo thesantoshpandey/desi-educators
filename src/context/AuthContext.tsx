@@ -87,7 +87,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         // We do a check. If it's a resume, we want to verify we are still valid.
                         // However, if we are valid (or DB is null), we ensure DB matches us.
                         // But we must NOT overwrite if DB has someone else.
-                        await checkSessionValidity(session.user.id);
+
+                        // SKIP check if this is a password recovery flow
+                        // The PASSWORD_RECOVERY event handler will take care of claiming the session
+                        const isRecovery = typeof window !== 'undefined' &&
+                            (window.location.hash.includes('type=recovery') ||
+                                window.location.search.includes('type=recovery'));
+
+                        if (!isRecovery) {
+                            await checkSessionValidity(session.user.id);
+                        } else {
+                            console.log("Skipping initial session check for password recovery flow");
+                        }
                     }
                 }
             } catch (error: any) {
