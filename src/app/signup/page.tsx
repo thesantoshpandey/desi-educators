@@ -27,11 +27,11 @@ export default function SignupPage() {
         setError('');
 
         try {
-            const success = await signup(name, email, password, phone);
+            const { success, error: signupError } = await signup(name, email, password, phone);
             if (success) {
                 router.push('/verify');
             } else {
-                setError('Email already exists. Please login.');
+                setError(signupError || 'Email already exists. Please login.');
             }
         } catch (err) {
             setError('Failed to create account');

@@ -17,7 +17,7 @@ export interface User {
 interface AuthContextType {
     user: User | null;
     login: (email: string, password: string) => Promise<void>;
-    signup: (name: string, email: string, password: string, phone?: string) => Promise<boolean>;
+    signup: (name: string, email: string, password: string, phone?: string) => Promise<{ success: boolean; error: string | null }>;
     logout: () => Promise<void>;
     isLoading: boolean;
 }
@@ -190,7 +190,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
         if (error) {
             console.error("Signup error:", error);
-            return false;
+            return { success: false, error: error.message };
         }
         if (data.user) {
             // New User: Generate ID
@@ -216,7 +216,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 console.error("Error creating profile:", profileError);
             }
         }
-        return true;
+        return { success: true, error: null };
     };
 
     const logout = async () => {
