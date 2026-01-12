@@ -15,15 +15,27 @@ export default function UpdatePasswordPage() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [checkingSession, setCheckingSession] = useState(true);
 
     useEffect(() => {
-        // Ensure user is authenticated (via the magic link)
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) {
-                // If checking link...
-                // Ideally, the hash fragment handles it automatically by supabase-js client
+        // We need to wait for Supabase to handle the recovery link exchange
+        const checkSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                setCheckingSession(false);
+            }
+        };
+
+        checkSession();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log("Auth event:", event);
+            if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+                setCheckingSession(false);
             }
         });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -66,7 +78,12 @@ export default function UpdatePasswordPage() {
                     <p>Enter your new password below</p>
                 </div>
 
-                {success ? (
+                {checkingSession ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                        <p className="text-gray-500">Verifying security link...</p>
+                    </div>
+                ) : success ? (
                     <div style={{ textAlign: 'center', padding: '20px 0' }}>
                         <div style={{
                             backgroundColor: '#FEE2E2',
