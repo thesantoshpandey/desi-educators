@@ -60,6 +60,10 @@ export default function UpdatePasswordPage() {
             if (error) throw error;
 
             setSuccess('Password updated successfully!');
+
+            // Explicitly sign out to ensure clean state and avoid session conflict
+            await supabase.auth.signOut();
+
             setTimeout(() => {
                 router.push('/login');
             }, 2000);
