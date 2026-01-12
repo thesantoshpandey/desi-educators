@@ -135,6 +135,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
                     // Allow time for DB update to propagate
                     await new Promise(resolve => setTimeout(resolve, 500));
+
+                    // BOUNCER: If we are on the home page (or login), redirect to update-password
+                    if (window.location.pathname === '/' || window.location.pathname === '/login') {
+                        console.log("BOUNCER: Redirecting to update-password page");
+                        router.push('/update-password');
+                    }
                 }
             }
 
