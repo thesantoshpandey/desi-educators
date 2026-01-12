@@ -158,7 +158,8 @@ export const CartDrawer = () => {
                 body: JSON.stringify({
                     amount: finalAmount,
                     currency: 'INR',
-                    items: items // Optional metadata for order notes
+                    items: items, // Optional metadata for order notes
+                    couponCode: couponCode || undefined
                 })
             });
 

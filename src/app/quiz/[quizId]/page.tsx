@@ -176,7 +176,7 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
                         setShowPaymentModal(false);
                         fetchQuiz();
                     }}
-                    items={[{ id: quiz.id, title: quiz.title, itemType: 'quiz' }]}
+                    items={[{ id: quiz.id, title: quiz.title, type: 'quiz' }]}
                 />
             </div>
         );
@@ -232,15 +232,15 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
                                 <div
                                     key={idx}
                                     onClick={() => handleOptionSelect(questions[activeQuestionIndex].id, idx)}
-                                    className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedAnswers[questions[activeQuestionIndex].id] === idxOrigin
-                                            ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
-                                            : 'border-gray-200 hover:bg-gray-50'
+                                    className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedAnswers[questions[activeQuestionIndex].id] === idx
+                                        ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
+                                        : 'border-gray-200 hover:bg-gray-50'
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className={`w-6 h-6 rounded-full border flex items-center justify-center ${selectedAnswers[questions[activeQuestionIndex].id] === idx
-                                                ? 'border-blue-600 bg-blue-600 text-white'
-                                                : 'border-gray-300'
+                                            ? 'border-blue-600 bg-blue-600 text-white'
+                                            : 'border-gray-300'
                                             }`}>
                                             {String.fromCharCode(65 + idx)}
                                         </div>

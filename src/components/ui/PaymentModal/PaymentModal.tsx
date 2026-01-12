@@ -123,8 +123,10 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    amount: finalAmount,
-                    currency: 'INR'
+                    amount: finalAmount, // Deprecated but sent for logging/debugging
+                    currency: 'INR',
+                    items: items || [{ id: 'bundle', title: planName, type: 'bundle' }], // Ensure items are sent
+                    couponCode: couponCode || undefined
                 })
             });
 

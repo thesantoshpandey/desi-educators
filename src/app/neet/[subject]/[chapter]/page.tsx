@@ -22,18 +22,31 @@ export default function ChapterPage({
     const subjectData = subjects.find(s => s.id === subject || s.title.toLowerCase() === subject.toLowerCase());
     const currentChapter = chapters.find(c => c.id === chapterId);
 
-    const [selectedItem, setSelectedItem] = React.useState<{ id: string, name: string, price: number } | null>(null);
+    const [selectedItem, setSelectedItem] = React.useState<{ id: string, name: string, price: number, type: string } | null>(null);
     const [viewingPdfPath, setViewingPdfPath] = React.useState<string | null>(null);
 
-    const handleBuyItem = (e: React.MouseEvent, item: { id: string, title: string, price: number }) => {
+    const handleBuyItem = (e: React.MouseEvent, item: { id: string, title: string, price: number, type: string }) => {
         // ... (existing code)
         e.preventDefault();
         if (!user) {
             window.location.href = `/login?next=${window.location.pathname}`;
             return;
         }
-        setSelectedItem({ id: item.id, name: item.title, price: item.price });
+        setSelectedItem({ id: item.id, name: item.title, price: item.price, type: item.type });
     };
+    // ...
+    // Note: I also need to update the onClick handlers below to pass the type
+    // But I can't do that effectively in this restricted block if the handlers are far away.
+    // Wait, the "ReplacementContent" must replace the BLOCK.
+    // I will replace the state definition and handleBuyItem first.
+    // Then I will need to replace the usage in the render function.
+    // Actually, I can replace the usage first or in parallel?
+    // "Do NOT make multiple parallel calls to this tool ... for the same file."
+    // I shall do it in 2 steps.
+
+    // Step 1: Update State and Handler
+    // Step 2: Update JSX usage
+
 
     const { refreshEnrollments, mergeEnrollments } = useContent();
 
@@ -157,7 +170,12 @@ export default function ChapterPage({
                                                             </div>
                                                         </div>
                                                         <Button size="sm" style={{ height: '36px', fontSize: '0.85rem', backgroundColor: '#111827' }}
-                                                            onClick={(e) => handleBuyItem(e, { id: isSubjectLocked ? (subjectData?.id || '') : (isChapterLocked ? chapterId : material.id), title: material.title, price: displayPrice })}
+                                                            onClick={(e) => handleBuyItem(e, {
+                                                                id: isSubjectLocked ? (subjectData?.id || '') : (isChapterLocked ? chapterId : material.id),
+                                                                title: material.title,
+                                                                price: displayPrice,
+                                                                type: isSubjectLocked ? 'subject' : (isChapterLocked ? 'chapter' : 'material')
+                                                            })}
                                                         >
                                                             Unlock ₹{displayPrice}
                                                         </Button>
@@ -232,7 +250,7 @@ export default function ChapterPage({
                     amount={selectedItem.price}
                     planName={selectedItem.name}
                     onSuccess={handlePaymentSuccess}
-                    items={[{ id: selectedItem.id, title: selectedItem.name, itemType: 'chapter' }]}
+                    items={[{ id: selectedItem.id, title: selectedItem.name, type: selectedItem.type }]}
                 />
             )}
         </div>

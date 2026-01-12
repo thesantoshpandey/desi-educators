@@ -287,6 +287,13 @@ export default function PricingPage() {
                     amount={selectedPlan.price}
                     planName={selectedPlan.name}
                     onSuccess={handlePaymentSuccess}
+                    items={[{
+                        id: selectedPlan.id,
+                        name: selectedPlan.name,
+                        price: selectedPlan.price,
+                        type: selectedPlan.type,
+                        targetIds: selectedPlan.targetIds
+                    }]}
                 />
             )}
         </div>

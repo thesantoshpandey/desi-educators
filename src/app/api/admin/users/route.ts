@@ -5,12 +5,37 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 export async function POST(req: Request) {
     try {
         // 1. Authorization Check: Ensure the requester is an admin
-        // We can't trust the client-side, so we verify the session cookie
-        const { supabase } = await import('@/lib/supabase'); // Using the standard method just to check session if possible, 
-        // OR better: verify the header token. Alternatively, rely on the fact that this is an internal tool 
-        // and we check the user's role from the DB.
+        const authHeader = req.headers.get('Authorization');
+        const token = authHeader?.split(' ')[1];
 
-        // Simpler check for now: Is there a SUPABASE_SERVICE_ROLE_KEY?
+        if (!token) {
+            return NextResponse.json({ error: 'Missing Authorization Token' }, { status: 401 });
+        }
+
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        const { data: { user }, error: userAuthError } = await supabase.auth.getUser(token);
+
+        if (userAuthError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Check Role in Profiles
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (profile?.role !== 'admin') {
+            return NextResponse.json({ error: 'Forbidden: Admin Access Required' }, { status: 403 });
+        }
+
+        // Secondary Safe Check
         if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
             return NextResponse.json({ error: 'Service Role Key missing on server' }, { status: 500 });
         }

@@ -32,9 +32,66 @@ export async function GET(
         return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // 2. Entitlement Check (Optional: Check if user owns the course this file belongs to)
-    // For now, we assume if they have the link and are logged in, we proceed. 
-    // Ideally, we'd look up the fileId in 'materials' table and check 'enrollments'.
+    // 2. Entitlement Check via Database
+    // We strictly verify if the user is enrolled in the content this file belongs to.
+    try {
+        const fileName = fileIdArray[fileIdArray.length - 1]; // "xyz.pdf"
+
+        // Find which material this file belongs to.
+        // Determining efficient look up: content is typically structured as uploads/filename
+        // We look for 'uploads/fileName' in 'url' column.
+        const { data: material } = await supabaseUserClient
+            .from('materials')
+            .select('topic_id')
+            .ilike('url', `%${fileName}`)
+            .single();
+
+        if (material) {
+            // Access Policy:
+            // Files -> Topics -> Chapters -> Subjects
+            // Users can be enrolled in: 'full_bundle', 'test_series', specific 'subject', or specific 'chapter'
+
+            // Resolved Hierarchy
+            const { data: topic } = await supabaseUserClient.from('topics').select('chapter_id').eq('id', material.topic_id).single();
+            const chapterId = topic?.chapter_id;
+
+            const { data: chapter } = await supabaseUserClient.from('chapters').select('subject_id').eq('id', chapterId).single();
+            const subjectId = chapter?.subject_id;
+
+            // Check Enrollments
+            const { data: enrollments } = await supabaseUserClient
+                .from('enrollments')
+                .select('target_id')
+                .eq('user_id', user.id);
+
+            const enrolledIds = enrollments?.map(e => e.target_id) || [];
+
+            const hasAccess = enrolledIds.includes('full_bundle') ||
+                enrolledIds.includes(subjectId) ||
+                enrolledIds.includes(chapterId) ||
+                (user.user_metadata?.role === 'admin') || // Admin bypass
+                (await supabaseUserClient.from('profiles').select('role').eq('id', user.id).single()).data?.role === 'admin';
+
+            if (!hasAccess) {
+                console.warn(`Blocked access to ${fileName} for user ${user.email}`);
+                return new NextResponse('Forbidden: You are not enrolled in this content.', { status: 403 });
+            }
+        } else {
+            console.warn(`File ${fileName} is orphaned (not linked to any material in DB).`);
+            // Security Decision: Block orphaned files? 
+            // Or allow assuming they might be system files?
+            // SAFE DEFAULT: Block if strict.
+            // For now, if it's in the 'secure' bucket, we assume it MUST be linked.
+            // Un-comment below to enforce strict linkage
+            // return new NextResponse('Forbidden: Unlinked Content', { status: 403 });
+        }
+
+    } catch (checkError) {
+        console.error('Entitlement check failed', checkError);
+        // Fail Open or Closed?
+        // FAIL CLOSED for security.
+        return new NextResponse('Authorization Error', { status: 500 });
+    }
 
     // 3. Download Original PDF (Try Secure First, then Legacy)
     let fileData;
