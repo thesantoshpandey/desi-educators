@@ -142,17 +142,15 @@ export default function AdminChapterPage({
     };
 
     const handleSaveMaterial = async () => {
-        if (!selectedTopicId) return;
+        if (!selectedTopicId) {
+            alert('Error: No topic selected. Please refresh and try again.');
+            return;
+        }
 
         // Redirect to Quiz Builder if Test selected
         if (materialType === 'test') {
             setMaterialModalOpen(false);
             openAddQuizModal(selectedTopicId);
-            // Pre-fill title if provided
-            if (materialTitle) {
-                // We'd need to modify openAddQuizModal to accept initial title, or just let user re-type
-                // For simplicity, just open the modal.
-            }
             return;
         }
 
@@ -163,49 +161,49 @@ export default function AdminChapterPage({
 
         let finalUrl = materialUrl;
 
-        if (uploadedFile) {
-            setIsUploading(true);
-            try {
+        setIsUploading(true); // Start loading state
+
+        try {
+            if (uploadedFile) {
                 const publicUrl = await uploadFile(uploadedFile);
                 if (!publicUrl) {
-                    alert('Failed to upload file. Please try again.');
-                    setIsUploading(false);
-                    return;
+                    throw new Error('Upload returned no URL');
                 }
                 finalUrl = publicUrl;
+            }
+
+            if (!finalUrl) {
                 setIsUploading(false);
-            } catch (error: any) {
-                console.error('Upload Error:', error);
-                alert(`Upload Failed: ${error.message || 'Please try again.'}`);
-                setIsUploading(false);
+                alert('Please provide a URL or upload a file.');
                 return;
             }
+
+            const price = materialPrice ? parseInt(materialPrice) : 0;
+
+            if (editingMaterialId) {
+                await updateMaterial(subject, chapterId, selectedTopicId, editingMaterialId, {
+                    title: materialTitle,
+                    url: finalUrl,
+                    type: materialType,
+                    price: price
+                });
+            } else {
+                await addMaterial(subject, chapterId, selectedTopicId, {
+                    title: materialTitle,
+                    url: finalUrl,
+                    type: materialType,
+                    price: price
+                });
+            }
+
+            resetFormState();
+            setMaterialModalOpen(false); // Close ONLY on success
+
+        } catch (error: any) {
+            console.error('Save Material Error:', error);
+            alert(`Failed: ${error.message || 'Unknown error occurred.'}`);
+            setIsUploading(false); // Stop loading on error
         }
-
-        if (!finalUrl) {
-            alert('Please provide a URL or upload a file.');
-            return;
-        }
-
-        const price = materialPrice ? parseInt(materialPrice) : 0;
-
-        if (editingMaterialId) {
-            await updateMaterial(subject, chapterId, selectedTopicId, editingMaterialId, {
-                title: materialTitle,
-                url: finalUrl,
-                type: materialType,
-                price: price
-            });
-        } else {
-            await addMaterial(subject, chapterId, selectedTopicId, {
-                title: materialTitle,
-                url: finalUrl,
-                type: materialType,
-                price: price
-            });
-        }
-
-        setMaterialModalOpen(false);
     };
 
     const resetFormState = () => {

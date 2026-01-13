@@ -496,13 +496,19 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             url: material.url,
             price: material.price || 0
         }]);
-        if (error) console.error(error);
+        if (error) {
+            console.error('Error adding material:', error);
+            throw error;
+        }
         await fetchData();
     };
 
     const updateMaterial = async (subjectId: string, chapterId: string, topicId: string, materialId: string, updates: Partial<Material>) => {
         const { error } = await supabase.from('materials').update(updates).eq('id', materialId);
-        if (error) console.error(error);
+        if (error) {
+            console.error('Error updating material:', error);
+            throw error;
+        }
         await fetchData();
     };
 
