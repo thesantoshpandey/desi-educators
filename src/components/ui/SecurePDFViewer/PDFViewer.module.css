@@ -22,8 +22,8 @@
     z-index: 50;
     /* Above PDF but below controls */
     background: transparent;
-    pointer-events: none;
-    /* Let clicks pass through if needed, but blocks drag/drop often */
+    pointer-events: auto;
+    /* Block all interactions with underlying PDF */
 }
 
 /* Print Prevention */

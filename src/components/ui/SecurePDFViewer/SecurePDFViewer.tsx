@@ -28,13 +28,28 @@ export const SecurePDFViewer = ({ fileId }: SecurePDFViewerProps) => {
     // Secure URL that calls our API
     const pdfUrl = `/api/secure/stream/${fileId}`;
 
+    // Block Keyboard Shortcuts (Print/Save)
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'p')) {
+                e.preventDefault();
+                alert('This content is protected.');
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
     return (
         <div
             className={styles.viewerContainer}
             onContextMenu={(e) => e.preventDefault()} // Disable Right Click
         >
-            {/* Protection Overlay */}
-            <div className={styles.protectionLayer} />
+            {/* Protection Overlay - Intercepts all clicks due to pointer-events: auto */}
+            <div
+                className={styles.protectionLayer}
+                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            />
 
             {/* Document Loader */}
             <div className={styles.documentWrapper}>
