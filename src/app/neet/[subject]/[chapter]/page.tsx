@@ -26,27 +26,14 @@ export default function ChapterPage({
     const [viewingPdfPath, setViewingPdfPath] = React.useState<string | null>(null);
 
     const handleBuyItem = (e: React.MouseEvent, item: { id: string, title: string, price: number, type: string }) => {
-        // ... (existing code)
         e.preventDefault();
+        e.stopPropagation();
         if (!user) {
             window.location.href = `/login?next=${window.location.pathname}`;
             return;
         }
         setSelectedItem({ id: item.id, name: item.title, price: item.price, type: item.type });
     };
-    // ...
-    // Note: I also need to update the onClick handlers below to pass the type
-    // But I can't do that effectively in this restricted block if the handlers are far away.
-    // Wait, the "ReplacementContent" must replace the BLOCK.
-    // I will replace the state definition and handleBuyItem first.
-    // Then I will need to replace the usage in the render function.
-    // Actually, I can replace the usage first or in parallel?
-    // "Do NOT make multiple parallel calls to this tool ... for the same file."
-    // I shall do it in 2 steps.
-
-    // Step 1: Update State and Handler
-    // Step 2: Update JSX usage
-
 
     const { refreshEnrollments, mergeEnrollments } = useContent();
 
@@ -58,20 +45,28 @@ export default function ChapterPage({
     };
 
     const handleMaterialClick = (e: React.MouseEvent, material: any) => {
-        if (material.type === 'pdf') {
+        if (material.type === 'pdf' || (material.type === 'document' && material.url?.toLowerCase().endsWith('.pdf'))) {
             e.preventDefault();
 
             let path = material.url;
 
             // Migration / Legacy Handling
-            // If it's a full URL, extract the path if possible, or assume it's legacy public
             if (path.startsWith('http')) {
-                // Try to extract path from standard supabase URL structure
-                // .../storage/v1/object/public/course-materials/uploads/xyz.pdf
-                if (path.includes('/course-materials/')) {
-                    path = path.split('/course-materials/')[1];
-                    // We will try to serve this via text proxy if the user moves it, 
-                    // OR we need the API to support legacy bucket fallback.
+                // Remove the domain and standard bucket prefix
+                // Support multiple buckets: 'course-materials', 'secure-materials'
+                try {
+                    const urlObj = new URL(path);
+                    const pathParts = urlObj.pathname.split('/');
+                    // pathParts: ["", "storage", "v1", "object", "public", "bucket-name", "folder", "file.pdf"]
+                    // We need everything after "bucket-name".
+
+                    // Find index of bucket name candidates
+                    const bucketIndex = pathParts.findIndex(p => p === 'course-materials' || p === 'secure-materials');
+                    if (bucketIndex !== -1 && bucketIndex + 1 < pathParts.length) {
+                        path = pathParts.slice(bucketIndex + 1).join('/');
+                    }
+                } catch (e) {
+                    console.error('Error parsing URL', e);
                 }
             }
 
@@ -151,7 +146,9 @@ export default function ChapterPage({
 
                                         const isCompleted = userProgress[material.id] || false;
                                         const isQuiz = material.type === 'test';
-                                        const isPdf = material.type === 'pdf';
+
+                                        // Robust PDF detection
+                                        const isPdf = material.type === 'pdf' || (material.type === 'document' && material.url?.toLowerCase().endsWith('.pdf'));
 
                                         return (
                                             <div key={material.id} style={{
@@ -201,15 +198,17 @@ export default function ChapterPage({
                                                                 {material.type === 'video' && <PlayCircle size={20} />}
                                                                 {isQuiz && <HelpCircle size={20} />}
                                                                 {material.type === 'image' && <Image size={20} />}
-                                                                {material.type === 'document' && <File size={20} />}
+                                                                {material.type === 'document' && !isPdf && <File size={20} />}
+                                                                {material.type === 'document' && isPdf && <FileText size={20} />}
                                                             </div>
 
                                                             <div onClick={(e) => isPdf ? handleMaterialClick(e, material) : null} style={{ cursor: isPdf ? 'pointer' : 'default' }}>
                                                                 <a
-                                                                    href={isQuiz ? `/quiz/${material.id}` : (material.url || '#')}
+                                                                    href={isQuiz ? `/quiz/${material.id}` : (isPdf ? '#' : (material.url || '#'))}
                                                                     target={isQuiz || isPdf ? "_self" : "_blank"}
                                                                     rel="noopener noreferrer"
-                                                                    style={{ textDecoration: 'none', pointerEvents: isPdf ? 'none' : 'auto' }}
+                                                                    style={{ textDecoration: 'none', pointerEvents: 'auto' }}
+                                                                    onClick={(e) => isPdf && e.preventDefault()}
                                                                 >
                                                                     <div style={{ fontWeight: 600, color: '#111827', fontSize: '0.95rem' }}>{material.title}</div>
                                                                 </a>
