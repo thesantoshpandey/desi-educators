@@ -3,12 +3,12 @@
     "short_name": "Desi Educators",
     "icons": [
         {
-            "src": "/icon.png?v=3",
+            "src": "/logo-v4.png",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "/apple-icon.png?v=3",
+            "src": "/apple-logo-v4.png",
             "sizes": "192x192",
             "type": "image/png"
         }
