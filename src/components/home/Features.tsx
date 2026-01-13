@@ -45,16 +45,13 @@ export const Features = () => {
                     </ul>
                 </div>
                 <div className={styles.imageSide}>
-                    {/* Placeholder for feature image */}
-                    <div className={styles.featureImagePlaceholder}>
-                        <div className={styles.mockupScreen}>
-                            <div className={styles.mockupHeader}></div>
-                            <div className={styles.mockupContent}>
-                                <div className={styles.line}></div>
-                                <div className={styles.line} style={{ width: '80%' }}></div>
-                                <div className={styles.chartCircle}></div>
-                            </div>
-                        </div>
+                    {/* Feature Image / Logo */}
+                    <div className={styles.featureImageContainer}>
+                        <img
+                            src="/logo-full.png"
+                            alt="Desi Educators Logo"
+                            className={styles.featureLogo}
+                        />
                     </div>
                 </div>
             </div>
