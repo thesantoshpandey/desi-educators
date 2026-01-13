@@ -156,7 +156,10 @@ export default function AdminChapterPage({
             return;
         }
 
-        if (!materialTitle) return;
+        if (!materialTitle) {
+            alert('Please enter a title for the material.');
+            return;
+        }
 
         let finalUrl = materialUrl;
 
@@ -205,13 +208,24 @@ export default function AdminChapterPage({
         setMaterialModalOpen(false);
     };
 
+    const resetFormState = () => {
+        setMaterialTitle('');
+        setMaterialUrl('');
+        setMaterialType('pdf');
+        setMaterialPrice('');
+        setUploadedFile(null);
+        setEditingMaterialId(null);
+        setIsUploading(false);
+    };
+
     const openAddMaterialModal = (topicId: string) => {
-        resetMaterialModal();
+        resetFormState();
         setSelectedTopicId(topicId);
         setMaterialModalOpen(true);
     };
 
     const openEditMaterialModal = (topicId: string, material: Material) => {
+        resetFormState(); // clear previous state
         setSelectedTopicId(topicId);
         setEditingMaterialId(material.id);
         setMaterialTitle(material.title);
@@ -221,15 +235,9 @@ export default function AdminChapterPage({
         setMaterialModalOpen(true);
     };
 
-    const resetMaterialModal = () => {
-        setMaterialTitle('');
-        setMaterialUrl('');
-        setMaterialType('pdf');
-        setMaterialPrice('');
-        setUploadedFile(null);
-        setEditingMaterialId(null);
-        setIsUploading(false);
-        setMaterialModalOpen(false); // Close the modal
+    const closeModal = () => {
+        resetFormState();
+        setMaterialModalOpen(false);
     };
 
     return (
@@ -413,7 +421,7 @@ export default function AdminChapterPage({
                     <Card style={modalContentStyle}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                             <h3 style={{ fontWeight: 700 }}>{editingMaterialId ? 'Edit Material' : 'Add Material'}</h3>
-                            <button onClick={resetMaterialModal} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                            <button onClick={closeModal} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
                         <div style={{ marginBottom: '16px' }}>
                             <div style={{ marginBottom: '16px' }}>
