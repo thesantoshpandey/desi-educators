@@ -114,12 +114,56 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
     };
 
     const hasAccess = (targetId: string) => {
-        if (user?.role === 'admin') return true; // Admin has full access
+        if (user?.role === 'admin') return true;
 
+        // 1. Check Direct Ownership
         if (enrolledTargetIds.includes(targetId)) return true;
 
-        // Check for bundles
+        // 2. Check Global Bundles
         if (enrolledTargetIds.includes('full_bundle') || enrolledTargetIds.includes('full-year')) return true;
+
+        // 3. Check Hierarchy (Buying Parent implies Child Access)
+        // Find the target item in our data structure to verify its parents
+        for (const chapter of chapters) {
+            // A. Is target a Chapter? Check Subject Access
+            if (chapter.id === targetId) {
+                if (enrolledTargetIds.includes(chapter.subjectId)) return true;
+            }
+
+            // B. Is target a Topic/Material? Check Chapter AND Subject Access
+            // Check Topic ID
+            const topic = chapter.topics.find(t => t.id === targetId);
+            if (topic) {
+                if (enrolledTargetIds.includes(chapter.id) || enrolledTargetIds.includes(chapter.subjectId)) return true;
+            }
+
+            // Check Materials inside Topics
+            for (const t of chapter.topics) {
+                const material = t.materials.find(m => m.id === targetId);
+                // Also check quizzes
+                const legacyQuiz = quizzes?.find(q => q.id === targetId);
+
+                if (material || (legacyQuiz && legacyQuiz.topic_id === t.id)) {
+                    // If we own the Chapter OR the Subject, we own the material
+                    if (enrolledTargetIds.includes(chapter.id)) return true;
+                    if (enrolledTargetIds.includes(chapter.subjectId)) return true;
+                    return false; // Found the item, but parent not owned (and direct check failed above)
+                }
+            }
+        }
+
+        // C. Check Quizzes that might be floating (unlikely but safe)
+        const quiz = quizzes?.find(q => q.id === targetId);
+        if (quiz) {
+            const parentTopic = chapters.flatMap(c => c.topics).find(t => t.id === quiz.topic_id);
+            if (parentTopic) {
+                const parentChapter = chapters.find(c => c.topics.some(t => t.id === parentTopic.id));
+                if (parentChapter) {
+                    if (enrolledTargetIds.includes(parentChapter.id)) return true;
+                    if (enrolledTargetIds.includes(parentChapter.subjectId)) return true;
+                }
+            }
+        }
 
         return false;
     };
