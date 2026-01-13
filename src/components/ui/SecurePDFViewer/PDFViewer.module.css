@@ -19,8 +19,10 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 50;
-    /* Above PDF but below controls */
+    z-index: 99999;
+    /* Absolute top layer */
+    cursor: default;
+    /* Hide pointer interaction hints */
     background: transparent;
     pointer-events: auto;
     /* Block all interactions with underlying PDF */

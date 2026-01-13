@@ -28,7 +28,7 @@ export const SecurePDFViewer = ({ fileId }: SecurePDFViewerProps) => {
     // Secure URL that calls our API
     const pdfUrl = `/api/secure/stream/${fileId}`;
 
-    // Block Keyboard Shortcuts (Print/Save)
+    // Block Keyboard Shortcuts (Print/Save) & Right Click Globally
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'p')) {
@@ -36,8 +36,19 @@ export const SecurePDFViewer = ({ fileId }: SecurePDFViewerProps) => {
                 alert('This content is protected.');
             }
         };
+
+        const handleContextMenu = (e: MouseEvent) => {
+            e.preventDefault();
+            return false;
+        };
+
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('contextmenu', handleContextMenu); // Global block
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('contextmenu', handleContextMenu);
+        };
     }, []);
 
     return (
