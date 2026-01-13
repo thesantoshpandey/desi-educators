@@ -31,9 +31,16 @@ export default function PricingPage() {
                 const purchased: string[] = [];
 
                 // 1. Check Local Storage (Fast)
+                // 1. Check Local Storage (Fast)
                 displayPlans.forEach(plan => {
-                    const key = `access_${plan.targetIds[0]}_${user.email}`;
-                    if (localStorage.getItem(key)) purchased.push(plan.id);
+                    // Check if we have access to ALL targets in this plan
+                    const hasAccessToAll = plan.targetIds.length > 0 && plan.targetIds.every((tid: string) =>
+                        localStorage.getItem(`access_${tid}_${user.email}`)
+                    );
+
+                    if (hasAccessToAll) {
+                        purchased.push(plan.id);
+                    }
                 });
 
                 // 2. Check Database (Source of Truth)
