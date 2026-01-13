@@ -22,6 +22,9 @@
     color: var(--text-secondary);
     transition: all 0.2s;
     white-space: nowrap;
+    border: none;
+    background: transparent;
+    cursor: pointer;
 }
 
 .tab:hover {
@@ -36,7 +39,7 @@
 }
 
 .contentArea {
-    min-height: 300px;
+    min-height: 200px;
 }
 
 .grid {
@@ -45,7 +48,82 @@
     gap: var(--spacing-md);
 }
 
+/* New List Item Styles */
+.listItem {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: white;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    color: inherit;
+}
+
+.listItem:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+}
+
+.iconBox {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: #FEF2F2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    flex-shrink: 0;
+}
+
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.title {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 1rem;
+}
+
+.subtitle {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.newBadge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #DC2626;
+    background-color: #FEF2F2;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #FECACA;
+    letter-spacing: 0.5px;
+}
+
+.actionIcon {
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.2s ease;
+    color: var(--primary-color);
+}
+
+.listItem:hover .actionIcon {
+    opacity: 1;
+    transform: translateX(0);
+}
+
 .placeholderItem {
+    /* Legacy fallback */
     padding: var(--spacing-md);
     border: 1px solid #eee;
     border-radius: var(--radius-sm);
@@ -57,24 +135,120 @@
     text-decoration: none;
 }
 
-.placeholderItem:hover {
-    border-color: var(--primary-color);
-    background-color: var(--bg-body);
+.videoCard {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
 }
 
-.videoPlaceholder {
-    height: 150px;
-    background-color: #000;
-    border-radius: var(--radius-md);
-    color: white;
+.videoCard:hover {
+    border-color: var(--primary-color);
+    background-color: #FEF2F2;
+}
+
+/* Grid Layout for new design */
+.notesGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.noteCard {
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    background: linear-gradient(145deg, #ffffff 0%, #f9fafb 100%);
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.noteCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary-color);
+}
+
+.noteCardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.noteIconBig {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: #FEF2F2;
+    color: var(--primary-color);
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    transition: opacity 0.2s;
-    text-decoration: none;
+    font-size: 1.5rem;
+    transition: transform 0.3s ease;
 }
 
-.videoPlaceholder:hover {
-    opacity: 0.9;
+.noteCard:hover .noteIconBig {
+    transform: scale(1.1) rotate(-5deg);
+    background: var(--primary-color);
+    color: white;
+}
+
+.noteNumber {
+    font-size: 3rem;
+    font-weight: 900;
+    color: #f1f5f9;
+    line-height: 1;
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.noteContent {
+    position: relative;
+    z-index: 1;
+}
+
+.noteTitle {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.noteChapter {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 16px;
+}
+
+.readButton {
+    margin-top: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    opacity: 0.8;
+    transition: all 0.2s;
+}
+
+.noteCard:hover .readButton {
+    opacity: 1;
+    gap: 10px;
 }

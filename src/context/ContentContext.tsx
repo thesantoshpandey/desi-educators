@@ -263,6 +263,8 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
                         id: c.id,
                         subjectId: c.subject_id,
                         title: c.title,
+                        is_locked: c.is_locked,
+                        price: c.price,
                         topics: cTopics.map(t => {
                             const tMaterials = materialsData?.filter(m => m.topic_id === t.id) || [];
                             return {
@@ -273,7 +275,8 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
                                     title: m.title,
                                     type: m.type as 'pdf' | 'video',
                                     url: m.url,
-                                    price: m.price || 0
+                                    price: m.price || 0,
+                                    created_at: m.created_at
                                 }))
                             };
                         })

@@ -7,8 +7,11 @@ import styles from './SyllabusSidebar.module.css';
 
 import { useContent } from '@/context/ContentContext';
 
+import { useParams } from 'next/navigation';
+
 export const SyllabusSidebar = () => {
     const { chapters, subjects } = useContent();
+    const params = useParams(); // Get URL params to detect active chapter
     const [expandedSubject, setExpandedSubject] = useState<string | null>('biology');
 
     const toggleSubject = (subjectId: string) => {
@@ -38,15 +41,25 @@ export const SyllabusSidebar = () => {
                             {expandedSubject === subject.id && (
                                 <div className={styles.unitList}>
                                     {subjectChapters.length > 0 ? (
-                                        subjectChapters.map((chapter) => (
-                                            <Link
-                                                key={chapter.id}
-                                                href={`/neet/${subject.id}/${chapter.id}`}
-                                                className={styles.unitLink}
-                                            >
-                                                {chapter.title}
-                                            </Link>
-                                        ))
+                                        subjectChapters.map((chapter) => {
+                                            const isActive = params?.chapter === chapter.id;
+                                            return (
+                                                <Link
+                                                    key={chapter.id}
+                                                    href={`/neet/${subject.id}/${chapter.id}`}
+                                                    className={styles.unitLink}
+                                                    style={isActive ? {
+                                                        backgroundColor: '#FEF2F2',
+                                                        color: '#DC2626',
+                                                        fontWeight: 600,
+                                                        borderLeft: '3px solid #DC2626',
+                                                        paddingLeft: '13px' // Adjust for border
+                                                    } : {}}
+                                                >
+                                                    {chapter.title}
+                                                </Link>
+                                            );
+                                        })
                                     ) : (
                                         <div style={{ padding: '8px 16px', fontSize: '0.85rem', color: '#94a3b8' }}>
                                             No chapters available.

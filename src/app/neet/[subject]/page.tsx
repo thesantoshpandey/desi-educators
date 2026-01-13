@@ -15,10 +15,14 @@ export default function SubjectPage({
     params: Promise<{ subject: string }>;
 }) {
     const { subject } = use(params);
-    const { getChaptersBySubject, hasAccess, refreshEnrollments, mergeEnrollments } = useContent();
+    const { getChaptersBySubject, hasAccess, refreshEnrollments, mergeEnrollments, subjects, isLoading } = useContent();
     const { getProductByTarget } = useProduct();
     const subjectName = subject.charAt(0).toUpperCase() + subject.slice(1);
     const chapters = getChaptersBySubject(subject);
+
+    // Get current subject data from Context (DB source of truth)
+    const subjectData = subjects.find(s => s.id === subject);
+    const isSubjectGlobalLock = subjectData?.is_locked !== false; // Default: Locked
 
     // Find the product that sells this subject (or the first one targeting it)
     const product = getProductByTarget(subject);
@@ -26,16 +30,8 @@ export default function SubjectPage({
     const { user } = useAuth();
     const { addToCart } = useCart();
     const [selectedProduct, setSelectedProduct] = React.useState<any>(null); // Product to buy (Subject or Chapter)
-    const [locks, setLocks] = React.useState<Record<string, boolean>>({});
 
     const isOwned = hasAccess(subject);
-
-    // Check ownership and load locks
-    React.useEffect(() => {
-        // Load miscellaneous locks config if needed (though really this should come from DB/Config too)
-        const storedLocks = JSON.parse(localStorage.getItem('contentLocks') || '{}');
-        setLocks(storedLocks);
-    }, []);
 
     const handleSuccess = async (newlyEnrolledIds?: string[]) => {
         if (!user || !selectedProduct) return;
@@ -48,15 +44,19 @@ export default function SubjectPage({
             await refreshEnrollments();
         }
 
-        // Refresh State logic handled by context update
-        if (!selectedProduct.targetIds.includes(subject)) {
-            window.location.reload();
-        }
-
         setSelectedProduct(null);
     };
 
-    const isSubjectLocked = locks[subject] !== false;
+    if (isLoading) {
+        return (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                <div style={{ marginBottom: '16px' }}>
+                    <Lock size={32} style={{ opacity: 0.2 }} />
+                </div>
+                <p>Verifying access...</p>
+            </div>
+        );
+    }
 
     return (
         <div style={{ padding: '0 0' }}>
@@ -65,7 +65,7 @@ export default function SubjectPage({
                     <h1 style={{ fontSize: '2rem' }}>{subjectName}</h1>
                     <p style={{ color: 'var(--text-secondary)' }}>Select a chapter to start learning.</p>
                 </div>
-                {(!isOwned && isSubjectLocked && product) && (
+                {(!isOwned && isSubjectGlobalLock && product) && (
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <Button
                             variant="outline"
@@ -118,15 +118,18 @@ export default function SubjectPage({
                 <div style={{ display: 'grid', gap: '16px' }}>
                     {chapters.map((chapter) => {
                         // Check if user has explicit access to this chapter
+                        // hasAccess(chapter.id) ALREADY handles hierarchy checks (Subject ownership -> Chapter access)
                         const hasChapterAccess = hasAccess(chapter.id);
 
-                        // Logic: Locked if (Subject Locked AND No Explicit Access)
-                        const chapterLockKey = `${subject}_${chapter.id}`;
-                        const isChapterLocked = !isOwned && !hasChapterAccess && (
-                            locks[chapterLockKey] !== undefined
-                                ? locks[chapterLockKey]
-                                : isSubjectLocked
-                        );
+                        // Determine if Chapter is locked:
+                        // 1. User does NOT have access
+                        // 2. AND (Chapter is explicitly locked OR (Chapter lock is undefined AND Subject is locked))
+                        // Note: If chapter.is_locked is explicitly false, it overrides subject lock (Free chapter in paid course)
+                        const isChapterGlobalLock = chapter.is_locked !== undefined
+                            ? chapter.is_locked
+                            : isSubjectGlobalLock;
+
+                        const isChapterLocked = !hasChapterAccess && isChapterGlobalLock;
 
                         const chapterProduct = getProductByTarget(chapter.id);
 

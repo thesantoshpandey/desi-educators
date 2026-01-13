@@ -81,7 +81,8 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
             is_active: product.isActive,
             is_recommended: product.isRecommended,
             color: product.color,
-            image: product.image
+            image: product.image,
+            original_price: product.originalPrice
         };
 
         const { error } = await supabase.from('products').insert(dbProduct);
@@ -101,6 +102,7 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
         if (updates.name) dbUpdates.name = updates.name;
         if (updates.description) dbUpdates.description = updates.description;
         if (updates.price) dbUpdates.price = updates.price;
+        if (updates.originalPrice) dbUpdates.original_price = updates.originalPrice;
         if (updates.type) dbUpdates.type = updates.type;
         if (updates.targetIds) dbUpdates.target_ids = updates.targetIds;
         if (updates.features) dbUpdates.features = updates.features;
