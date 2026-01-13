@@ -31,7 +31,6 @@ export const Hero = () => {
                                 {user ? "Go to Dashboard" : "Start Prep for Free"}
                             </Button>
                         </Link>
-
                     </div>
                     <div className={styles.stats}>
                         <div className={styles.statItem}>
@@ -51,23 +50,12 @@ export const Hero = () => {
                     </div>
                 </div>
                 <div className={styles.visual}>
-                    {/* Abstract visual representation */}
-                    <div className={styles.circle1}></div>
-                    <div className={styles.circle2}></div>
-                    <div className={styles.cardVisual}>
-                        <div className={styles.cardHeader}>
-                            <div className={styles.dot}></div>
-                            <div className={styles.dot}></div>
-                            <div className={styles.dot}></div>
-                        </div>
-                        <div className={styles.cardBody}>
-                            <h4>Biology - Genetics</h4>
-                            <div className={styles.progressBar}>
-                                <div className={styles.progressFill} style={{ width: '75%' }}></div>
-                            </div>
-                            <p>Lesson 3: DNA Replication</p>
-                        </div>
-                    </div>
+                    {/* Reverting to simple structure but with the requested full image */}
+                    <img
+                        src="/hero-person-full.png"
+                        alt="Desi Educators Mentor"
+                        className={styles.heroImage}
+                    />
                 </div>
             </div>
         </section>
