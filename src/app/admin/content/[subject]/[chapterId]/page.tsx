@@ -501,7 +501,11 @@ export default function AdminChapterPage({
                             </div>
                         </div>
 
-                        <Button style={{ marginTop: '16px', width: '100%' }} onClick={handleSaveMaterial}>
+                        <Button
+                            style={{ marginTop: '16px', width: '100%' }}
+                            onClick={handleSaveMaterial}
+                            isLoading={isUploading}
+                        >
                             {editingMaterialId ? 'Update Material' : 'Add Material'}
                         </Button>
                     </Card>
