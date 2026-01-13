@@ -174,7 +174,8 @@ export const PaymentModal = ({ isOpen, onClose, amount, planName, onSuccess, ite
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_signature: response.razorpay_signature,
                             // user_id: user.id, // Removed: Server gets it from token
-                            items: items || [{ id: 'bundle', title: planName, itemType: 'bundle' }]
+                            items: items || [{ id: 'bundle', title: planName, itemType: 'bundle' }],
+                            amount: finalAmount
                         })
                     });
 
