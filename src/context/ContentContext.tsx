@@ -88,12 +88,8 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 refreshEnrollments();
-                fetchUserProgress();
-                fetchData(); // Reload content in case RLS or visibility depends on auth
             } else if (event === 'SIGNED_OUT') {
                 setEnrolledTargetIds([]);
-                setUserProgress({});
-                fetchData(); // Reset to public content
             }
         });
         return () => subscription.unsubscribe();
@@ -328,60 +324,32 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
 
     const uploadFile = async (file: File): Promise<string | null> => {
         try {
-            try {
-                const fileExt = file.name.split('.').pop()?.toLowerCase();
-                const isPdf = fileExt === 'pdf';
-                const bucketName = isPdf ? 'secure-materials' : 'course-materials';
+            const formData = new FormData();
+            formData.append('file', file);
 
-                // 1. Get Signed URL / Token from Server (Secure)
-                const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+            const fileExt = file.name.split('.').pop()?.toLowerCase();
+            const isPdf = fileExt === 'pdf';
+            const bucketName = isPdf ? 'secure-materials' : 'course-materials';
 
-                if (sessionError || !session) {
-                    throw new Error('Your session has expired. Please log out and log in again.');
-                }
+            formData.append('bucket', bucketName);
 
-                const token = session.access_token;
+            const response = await fetch('/api/admin/upload', {
+                method: 'POST',
+                body: formData,
+            });
 
-                const response = await fetch('/api/admin/upload', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        filename: file.name,
-                        bucket: bucketName,
-                        contentType: file.type
-                    }),
-                });
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Upload failed:', errorData.error);
+                throw new Error(errorData.error || 'Upload failed');
+            }
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to initialize upload');
-                }
+            const data = await response.json();
 
-                const { path, token: uploadToken, publicUrl } = await response.json();
-
-                // 2. Upload Directly to Supabase Storage using Signed Token
-                const { error: uploadError } = await supabase.storage
-                    .from(bucketName)
-                    .uploadToSignedUrl(path, uploadToken, file);
-
-                if (uploadError) {
-                    console.error('Supabase Client Upload Error:', uploadError);
-                    throw new Error(uploadError.message || 'Upload failed during transfer');
-                }
-
-                // 3. Return correct path/url
-                if (isPdf) {
-                    return path;
-                } else {
-                    return publicUrl;
-                }
-
-            } catch (error: any) {
-                console.error('Error in uploadFile:', error);
-                throw error;
+            if (isPdf) {
+                return data.path;
+            } else {
+                return data.publicUrl;
             }
         } catch (error: any) {
             console.error('Error in uploadFile:', error);
@@ -509,19 +477,13 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             url: material.url,
             price: material.price || 0
         }]);
-        if (error) {
-            console.error('Error adding material:', error);
-            throw error;
-        }
+        if (error) console.error(error);
         await fetchData();
     };
 
     const updateMaterial = async (subjectId: string, chapterId: string, topicId: string, materialId: string, updates: Partial<Material>) => {
         const { error } = await supabase.from('materials').update(updates).eq('id', materialId);
-        if (error) {
-            console.error('Error updating material:', error);
-            throw error;
-        }
+        if (error) console.error(error);
         await fetchData();
     };
 

@@ -21,23 +21,7 @@ export async function POST(req: NextRequest) {
             }
         );
 
-        const authHeader = req.headers.get('Authorization');
-        const token = authHeader?.replace('Bearer ', '');
-
-        let user;
-        let authError;
-
-        if (token) {
-            // Validate via Header Token
-            const { data, error } = await supabase.auth.getUser(token);
-            user = data.user;
-            authError = error;
-        } else {
-            // Validate via Cookies (Fallback)
-            const { data, error } = await supabase.auth.getUser();
-            user = data.user;
-            authError = error;
-        }
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
             return NextResponse.json({ error: 'Unauthorized: No active session' }, { status: 401 });
@@ -54,34 +38,42 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
         }
 
-        // 2. Generate Signed Upload URL
-        const body = await req.json();
-        const { filename, bucket, contentType } = body;
+        // 2. Process Upload
+        const formData = await req.formData();
+        const file = formData.get('file') as File;
+        const bucket = formData.get('bucket') as string;
+        // Optional path prefix, otherwise we generate one
+        const pathPrefix = formData.get('pathPrefix') as string || 'uploads';
 
-        if (!filename || !bucket) {
-            return NextResponse.json({ error: 'Missing filename or bucket' }, { status: 400 });
+        if (!file || !bucket) {
+            return NextResponse.json({ error: 'Missing file or bucket' }, { status: 400 });
         }
 
-        // Generate Path
-        const fileExt = filename.split('.').pop()?.toLowerCase() || 'bin';
-        const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `uploads/${uniqueName}`;
+        // Generate Secure Path
+        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'bin';
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${pathPrefix}/${fileName}`;
 
-        // Create Signed Upload URL
-        const { data, error: signError } = await supabaseAdmin
+        // Convert File to ArrayBuffer -> Buffer (for Node environment)
+        // Note: Supabase JS upload accepts ArrayBuffer/Blob in some environments, but Buffer is safe here.
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // Upload using Service Role (Bypassing RLS)
+        const { data, error: uploadError } = await supabaseAdmin
             .storage
             .from(bucket)
-            .createSignedUploadUrl(filePath);
+            .upload(filePath, buffer, {
+                contentType: file.type,
+                upsert: false
+            });
 
-        if (signError) {
-            console.error('Signed URL Error:', signError);
-            return NextResponse.json({ error: signError.message }, { status: 500 });
+        if (uploadError) {
+            console.error('Supabase Storage Error:', uploadError);
+            return NextResponse.json({ error: uploadError.message }, { status: 500 });
         }
 
-        // Return the token/url for client-side upload
-        // Note: data.signedUrl is the full URL, but client 'uploadToSignedUrl' needs parameters usually.
-        // Actually, Supabase JS client 'uploadToSignedUrl' takes (path, token, file)
-
+        // 3. Return Result
         let publicUrl = '';
         if (bucket !== 'secure-materials') {
             const { data: urlData } = supabaseAdmin.storage.from(bucket).getPublicUrl(filePath);
@@ -89,10 +81,9 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({
+            message: 'Upload successful',
             path: filePath,
-            token: data.token,
-            signedUrl: data.signedUrl, // For validation if needed
-            publicUrl: publicUrl
+            publicUrl: publicUrl || null
         });
 
     } catch (error: any) {

@@ -142,88 +142,76 @@ export default function AdminChapterPage({
     };
 
     const handleSaveMaterial = async () => {
-        if (!selectedTopicId) {
-            alert('Error: No topic selected. Please refresh and try again.');
-            return;
-        }
+        if (!selectedTopicId) return;
 
         // Redirect to Quiz Builder if Test selected
         if (materialType === 'test') {
             setMaterialModalOpen(false);
             openAddQuizModal(selectedTopicId);
+            // Pre-fill title if provided
+            if (materialTitle) {
+                // We'd need to modify openAddQuizModal to accept initial title, or just let user re-type
+                // For simplicity, just open the modal.
+            }
             return;
         }
 
-        if (!materialTitle) {
-            alert('Please enter a title for the material.');
-            return;
-        }
+        if (!materialTitle) return;
 
         let finalUrl = materialUrl;
 
-        setIsUploading(true); // Start loading state
-
-        try {
-            if (uploadedFile) {
+        if (uploadedFile) {
+            setIsUploading(true);
+            try {
                 const publicUrl = await uploadFile(uploadedFile);
                 if (!publicUrl) {
-                    throw new Error('Upload returned no URL');
+                    alert('Failed to upload file. Please try again.');
+                    setIsUploading(false);
+                    return;
                 }
                 finalUrl = publicUrl;
-            }
-
-            if (!finalUrl) {
                 setIsUploading(false);
-                alert('Please provide a URL or upload a file.');
+            } catch (error) {
+                console.error('Upload Error:', error);
+                alert('Upload Failed. Please try again.');
+                setIsUploading(false);
                 return;
             }
-
-            const price = materialPrice ? parseInt(materialPrice) : 0;
-
-            if (editingMaterialId) {
-                await updateMaterial(subject, chapterId, selectedTopicId, editingMaterialId, {
-                    title: materialTitle,
-                    url: finalUrl,
-                    type: materialType,
-                    price: price
-                });
-            } else {
-                await addMaterial(subject, chapterId, selectedTopicId, {
-                    title: materialTitle,
-                    url: finalUrl,
-                    type: materialType,
-                    price: price
-                });
-            }
-
-            resetFormState();
-            setMaterialModalOpen(false); // Close ONLY on success
-
-        } catch (error: any) {
-            console.error('Save Material Error:', error);
-            alert(`Failed: ${error.message || 'Unknown error occurred.'}`);
-            setIsUploading(false); // Stop loading on error
         }
-    };
 
-    const resetFormState = () => {
-        setMaterialTitle('');
-        setMaterialUrl('');
-        setMaterialType('pdf');
-        setMaterialPrice('');
-        setUploadedFile(null);
-        setEditingMaterialId(null);
-        setIsUploading(false);
+        if (!finalUrl) {
+            alert('Please provide a URL or upload a file.');
+            return;
+        }
+
+        const price = materialPrice ? parseInt(materialPrice) : 0;
+
+        if (editingMaterialId) {
+            await updateMaterial(subject, chapterId, selectedTopicId, editingMaterialId, {
+                title: materialTitle,
+                url: finalUrl,
+                type: materialType,
+                price: price
+            });
+        } else {
+            await addMaterial(subject, chapterId, selectedTopicId, {
+                title: materialTitle,
+                url: finalUrl,
+                type: materialType,
+                price: price
+            });
+        }
+
+        setMaterialModalOpen(false);
     };
 
     const openAddMaterialModal = (topicId: string) => {
-        resetFormState();
+        resetMaterialModal();
         setSelectedTopicId(topicId);
         setMaterialModalOpen(true);
     };
 
     const openEditMaterialModal = (topicId: string, material: Material) => {
-        resetFormState(); // clear previous state
         setSelectedTopicId(topicId);
         setEditingMaterialId(material.id);
         setMaterialTitle(material.title);
@@ -233,9 +221,15 @@ export default function AdminChapterPage({
         setMaterialModalOpen(true);
     };
 
-    const closeModal = () => {
-        resetFormState();
-        setMaterialModalOpen(false);
+    const resetMaterialModal = () => {
+        setMaterialTitle('');
+        setMaterialUrl('');
+        setMaterialType('pdf');
+        setMaterialPrice('');
+        setUploadedFile(null);
+        setEditingMaterialId(null);
+        setIsUploading(false);
+        setMaterialModalOpen(false); // Close the modal
     };
 
     return (
@@ -419,7 +413,7 @@ export default function AdminChapterPage({
                     <Card style={modalContentStyle}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                             <h3 style={{ fontWeight: 700 }}>{editingMaterialId ? 'Edit Material' : 'Add Material'}</h3>
-                            <button onClick={closeModal} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                            <button onClick={resetMaterialModal} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
                         <div style={{ marginBottom: '16px' }}>
                             <div style={{ marginBottom: '16px' }}>
@@ -499,11 +493,7 @@ export default function AdminChapterPage({
                             </div>
                         </div>
 
-                        <Button
-                            style={{ marginTop: '16px', width: '100%' }}
-                            onClick={handleSaveMaterial}
-                            isLoading={isUploading}
-                        >
+                        <Button style={{ marginTop: '16px', width: '100%' }} onClick={handleSaveMaterial}>
                             {editingMaterialId ? 'Update Material' : 'Add Material'}
                         </Button>
                     </Card>
