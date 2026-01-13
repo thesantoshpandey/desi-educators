@@ -17,9 +17,10 @@ export const metadata: Metadata = {
   title: "Desi Educators | Crack NEET with Concept-First Learning",
   description: "Best NEET preparation platform with notes, videos, and tests.",
   icons: {
-    icon: '/icon.png?v=2',
-    apple: '/apple-icon.png?v=2',
+    icon: '/icon.png?v=3',
+    apple: '/apple-icon.png?v=3',
   },
+  manifest: '/manifest.json',
 };
 
 import { Navbar, Footer } from "@/components/layout";
