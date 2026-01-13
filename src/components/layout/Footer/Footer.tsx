@@ -4,7 +4,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { GraduationCap, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import Image from 'next/image';
+import { Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 import styles from './Footer.module.css';
 
 export const Footer = () => {
@@ -16,8 +17,14 @@ export const Footer = () => {
             <div className={styles.container}>
                 <div className={styles.brandSection}>
                     <div className={styles.logo}>
-                        <GraduationCap size={24} />
-                        <span>Desi Educators</span>
+                        <Image
+                            src="/logo.png"
+                            alt="Desi Educators Logo"
+                            width={100}
+                            height={60}
+                            style={{ width: 'auto', height: '30px' }}
+                        />
+                        <span style={{ color: 'black', fontWeight: 700 }}>Desi Educators</span>
                     </div>
                     <p className={styles.tagline}>
                         Desi Roots. Global Results. Your trusted partner for NEET preparation.

@@ -16,6 +16,10 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Desi Educators | Crack NEET with Concept-First Learning",
   description: "Best NEET preparation platform with notes, videos, and tests.",
+  icons: {
+    icon: '/icon.png',
+    apple: '/apple-icon.png',
+  },
 };
 
 import { Navbar, Footer } from "@/components/layout";

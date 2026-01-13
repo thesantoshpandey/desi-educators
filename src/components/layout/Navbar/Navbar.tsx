@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X, BookOpen, GraduationCap, LayoutDashboard, UserCircle, CreditCard } from 'lucide-react';
+import Image from 'next/image';
+import { Menu, X, BookOpen, LayoutDashboard, UserCircle, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui';
 import styles from './Navbar.module.css';
 import { useAuth } from '@/context/AuthContext';
@@ -31,9 +32,16 @@ export const Navbar = () => {
             <nav className={styles.navbar}>
                 <div className={styles.container}>
                     {/* Logo */}
-                    <Link href="/" className={styles.logo}>
-                        <GraduationCap size={28} className={styles.logoIcon} />
-                        <span>Desi Educators</span>
+                    <Link href="/" className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Image
+                            src="/logo.png"
+                            alt="Desi Educators Logo"
+                            width={100}
+                            height={60}
+                            style={{ width: 'auto', height: '40px' }}
+                            priority
+                        />
+                        <span style={{ color: 'black', fontWeight: 700 }}>Desi Educators</span>
                     </Link>
 
                     {/* Desktop Navigation */}
