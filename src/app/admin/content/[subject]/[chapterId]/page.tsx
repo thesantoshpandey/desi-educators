@@ -162,13 +162,21 @@ export default function AdminChapterPage({
 
         if (uploadedFile) {
             setIsUploading(true);
-            const publicUrl = await uploadFile(uploadedFile);
-            setIsUploading(false);
-            if (!publicUrl) {
-                alert('Failed to upload file. Please try again.');
+            try {
+                const publicUrl = await uploadFile(uploadedFile);
+                if (!publicUrl) {
+                    alert('Failed to upload file. Please try again.');
+                    setIsUploading(false);
+                    return;
+                }
+                finalUrl = publicUrl;
+                setIsUploading(false);
+            } catch (error) {
+                console.error('Upload Error:', error);
+                alert('Upload Failed. Please try again.');
+                setIsUploading(false);
                 return;
             }
-            finalUrl = publicUrl;
         }
 
         if (!finalUrl) {

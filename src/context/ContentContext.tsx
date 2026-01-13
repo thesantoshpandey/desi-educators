@@ -324,39 +324,36 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
 
     const uploadFile = async (file: File): Promise<string | null> => {
         try {
+            const formData = new FormData();
+            formData.append('file', file);
+
             const fileExt = file.name.split('.').pop()?.toLowerCase();
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
             const isPdf = fileExt === 'pdf';
-
-            // Bucket Selection
             const bucketName = isPdf ? 'secure-materials' : 'course-materials';
-            const filePath = `uploads/${fileName}`;
 
-            const { error: uploadError } = await supabase.storage
-                .from(bucketName)
-                .upload(filePath, file);
+            formData.append('bucket', bucketName);
 
-            if (uploadError) {
-                console.error('Error uploading file:', uploadError);
-                return null;
+            const response = await fetch('/api/admin/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Upload failed:', errorData.error);
+                throw new Error(errorData.error || 'Upload failed');
             }
+
+            const data = await response.json();
 
             if (isPdf) {
-                // For Secure PDF, we return the STORAGE PATH (ID), not a URL.
-                // We prefix it with 'secure::' to easily identify it later if needed, 
-                // or just store the path and handle it in the UI.
-                // Let's store just the path "uploads/filename.pdf" which we can pass to the API.
-                return filePath;
+                return data.path;
             } else {
-                // Legacy / Public (Images, etc)
-                const { data: { publicUrl } } = supabase.storage
-                    .from(bucketName)
-                    .getPublicUrl(filePath);
-                return publicUrl;
+                return data.publicUrl;
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error in uploadFile:', error);
-            return null;
+            throw error;
         }
     };
 
