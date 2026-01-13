@@ -78,12 +78,8 @@ export async function GET(
             }
         } else {
             console.warn(`File ${fileName} is orphaned (not linked to any material in DB).`);
-            // Security Decision: Block orphaned files? 
-            // Or allow assuming they might be system files?
-            // SAFE DEFAULT: Block if strict.
-            // For now, if it's in the 'secure' bucket, we assume it MUST be linked.
-            // Un-comment below to enforce strict linkage
-            // return new NextResponse('Forbidden: Unlinked Content', { status: 403 });
+            // Security Decision: Block orphaned files.
+            return new NextResponse('Forbidden: Unlinked Content', { status: 403 });
         }
 
     } catch (checkError) {
