@@ -54,42 +54,34 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
         }
 
-        // 2. Process Upload
-        const formData = await req.formData();
-        const file = formData.get('file') as File;
-        const bucket = formData.get('bucket') as string;
-        // Optional path prefix, otherwise we generate one
-        const pathPrefix = formData.get('pathPrefix') as string || 'uploads';
+        // 2. Generate Signed Upload URL
+        const body = await req.json();
+        const { filename, bucket, contentType } = body;
 
-        if (!file || !bucket) {
-            return NextResponse.json({ error: 'Missing file or bucket' }, { status: 400 });
+        if (!filename || !bucket) {
+            return NextResponse.json({ error: 'Missing filename or bucket' }, { status: 400 });
         }
 
-        // Generate Secure Path
-        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'bin';
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `${pathPrefix}/${fileName}`;
+        // Generate Path
+        const fileExt = filename.split('.').pop()?.toLowerCase() || 'bin';
+        const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `uploads/${uniqueName}`;
 
-        // Convert File to ArrayBuffer -> Buffer (for Node environment)
-        // Note: Supabase JS upload accepts ArrayBuffer/Blob in some environments, but Buffer is safe here.
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
-        // Upload using Service Role (Bypassing RLS)
-        const { data, error: uploadError } = await supabaseAdmin
+        // Create Signed Upload URL
+        const { data, error: signError } = await supabaseAdmin
             .storage
             .from(bucket)
-            .upload(filePath, buffer, {
-                contentType: file.type,
-                upsert: false
-            });
+            .createSignedUploadUrl(filePath);
 
-        if (uploadError) {
-            console.error('Supabase Storage Error:', uploadError);
-            return NextResponse.json({ error: uploadError.message }, { status: 500 });
+        if (signError) {
+            console.error('Signed URL Error:', signError);
+            return NextResponse.json({ error: signError.message }, { status: 500 });
         }
 
-        // 3. Return Result
+        // Return the token/url for client-side upload
+        // Note: data.signedUrl is the full URL, but client 'uploadToSignedUrl' needs parameters usually.
+        // Actually, Supabase JS client 'uploadToSignedUrl' takes (path, token, file)
+
         let publicUrl = '';
         if (bucket !== 'secure-materials') {
             const { data: urlData } = supabaseAdmin.storage.from(bucket).getPublicUrl(filePath);
@@ -97,9 +89,10 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({
-            message: 'Upload successful',
             path: filePath,
-            publicUrl: publicUrl || null
+            token: data.token,
+            signedUrl: data.signedUrl, // For validation if needed
+            publicUrl: publicUrl
         });
 
     } catch (error: any) {

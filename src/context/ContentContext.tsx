@@ -328,47 +328,60 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
 
     const uploadFile = async (file: File): Promise<string | null> => {
         try {
-            const formData = new FormData();
-            formData.append('file', file);
+            try {
+                const fileExt = file.name.split('.').pop()?.toLowerCase();
+                const isPdf = fileExt === 'pdf';
+                const bucketName = isPdf ? 'secure-materials' : 'course-materials';
 
-            const fileExt = file.name.split('.').pop()?.toLowerCase();
-            const isPdf = fileExt === 'pdf';
-            const bucketName = isPdf ? 'secure-materials' : 'course-materials';
+                // 1. Get Signed URL / Token from Server (Secure)
+                const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
 
-            formData.append('bucket', bucketName);
+                if (sessionError || !session) {
+                    throw new Error('Your session has expired. Please log out and log in again.');
+                }
 
-            formData.append('bucket', bucketName);
+                const token = session.access_token;
 
-            // Force Session Refresh to ensure token is valid
-            const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+                const response = await fetch('/api/admin/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        filename: file.name,
+                        bucket: bucketName,
+                        contentType: file.type
+                    }),
+                });
 
-            if (sessionError || !session) {
-                console.error('Session Refresh Failed:', sessionError);
-                throw new Error('Your session has expired. Please log out and log in again.');
-            }
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to initialize upload');
+                }
 
-            const token = session.access_token;
+                const { path, token: uploadToken, publicUrl } = await response.json();
 
-            const response = await fetch('/api/admin/upload', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData,
-            });
+                // 2. Upload Directly to Supabase Storage using Signed Token
+                const { error: uploadError } = await supabase.storage
+                    .from(bucketName)
+                    .uploadToSignedUrl(path, uploadToken, file);
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Upload failed:', errorData.error);
-                throw new Error(errorData.error || 'Upload failed');
-            }
+                if (uploadError) {
+                    console.error('Supabase Client Upload Error:', uploadError);
+                    throw new Error(uploadError.message || 'Upload failed during transfer');
+                }
 
-            const data = await response.json();
+                // 3. Return correct path/url
+                if (isPdf) {
+                    return path;
+                } else {
+                    return publicUrl;
+                }
 
-            if (isPdf) {
-                return data.path;
-            } else {
-                return data.publicUrl;
+            } catch (error: any) {
+                console.error('Error in uploadFile:', error);
+                throw error;
             }
         } catch (error: any) {
             console.error('Error in uploadFile:', error);
