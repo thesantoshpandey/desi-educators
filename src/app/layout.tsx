@@ -14,8 +14,37 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Desi Educators | Crack NEET with Concept-First Learning",
-  description: "Best NEET preparation platform with notes, videos, and tests.",
+  metadataBase: new URL('https://www.desieducators.com'),
+  title: {
+    default: "Desi Educators | Crack NEET with Concept-First Learning",
+    template: "%s | Desi Educators"
+  },
+  description: "Best NEET preparation platform with notes, videos, and tests. Master concepts with Desi Educators.",
+  keywords: ["NEET", "NEET Prep", "Medical Entrance", "Biology", "Physics", "Chemistry", "Desi Educators"],
+  openGraph: {
+    title: "Desi Educators | Crack NEET with Concept-First Learning",
+    description: "Best NEET preparation platform with notes, videos, and tests.",
+    url: 'https://www.desieducators.com',
+    siteName: 'Desi Educators',
+    locale: 'en_IN',
+    type: 'website',
+    images: [
+      {
+        url: '/logo-v4.png', // Fallback to logo if no specific OG image
+        width: 800,
+        height: 600,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Desi Educators",
+    description: "Crack NEET with Concept-First Learning",
+    images: ['/logo-v4.png'],
+  },
+  verification: {
+    google: 'YOUR_GOOGLE_VERIFICATION_CODE', // Placeholder as requested
+  },
   icons: {
     icon: '/logo-v4.png',
     apple: '/apple-logo-v4.png',

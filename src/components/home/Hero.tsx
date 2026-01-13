@@ -17,6 +17,7 @@ export const Hero = () => {
                 <div className={styles.content}>
                     <span className={styles.badge}>New: NEET 2026 Crash Course</span>
                     <h1 className={styles.headline}>
+                        <span style={{ display: 'block', fontSize: '0.6em', textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--primary-color)', marginBottom: '8px' }}>Desi Educators</span>
                         Crack NEET with <br />
                         <span className={styles.highlight}>Concept-First Learning</span>
                     </h1>
