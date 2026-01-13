@@ -50,12 +50,18 @@ export const Hero = () => {
                     </div>
                 </div>
                 <div className={styles.visual}>
-                    {/* Reverting to simple structure but with the requested full image */}
-                    <img
-                        src="/hero-person-full.png"
-                        alt="Desi Educators Mentor"
-                        className={styles.heroImage}
-                    />
+                    <div className={styles.imageContainer}>
+                        <img
+                            src="/hero-person-full.png"
+                            alt="Desi Educators Mentor"
+                            className={styles.heroImage}
+                        />
+                        {/* Name Plate / Caption Card */}
+                        <div className={styles.captainCard}>
+                            <h3 className={styles.captainName}>Prof Priya Pandey</h3>
+                            <p className={styles.captainDegree}>M. Sc. (Gold Medalist), Life Sciences</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

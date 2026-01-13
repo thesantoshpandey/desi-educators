@@ -4,7 +4,6 @@
     min-height: 80vh;
     display: flex;
     align-items: center;
-    /* Harmonized background: gentle gradient matching site's light aesthetic */
     background: linear-gradient(135deg, var(--bg-body) 0%, #F3F4F6 100%);
     overflow: hidden;
 }
@@ -30,7 +29,6 @@
     display: inline-block;
     padding: 6px 12px;
     background: var(--bg-card);
-    /* White */
     color: var(--primary-color);
     font-size: 0.85rem;
     font-weight: 600;
@@ -97,7 +95,7 @@
     background: #E5E7EB;
 }
 
-/* Visual Side - Properly sized image */
+/* Visual Side with Caption */
 .visual {
     flex: 1;
     display: flex;
@@ -106,12 +104,67 @@
     position: relative;
 }
 
+.imageContainer {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 .heroImage {
     max-width: 100%;
     height: auto;
     max-height: 600px;
     object-fit: contain;
     filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.1));
+    margin-bottom: -30px;
+    /* Overlap with card */
+    position: relative;
+    z-index: 1;
+}
+
+.captainCard {
+    background: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    z-index: 2;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    min-width: 260px;
+    /* Gentle floating animation */
+    animation: float 6s ease-in-out infinite;
+    backdrop-filter: blur(8px);
+    /* Frosted glass effect if needed */
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.captainName {
+    color: var(--primary-color);
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin-bottom: 2px;
+}
+
+.captainDegree {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
 }
 
 /* Mobile Responsiveness */
