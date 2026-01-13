@@ -72,28 +72,64 @@ export async function POST(request: Request) {
         const isAuthentic = expectedSignature === razorpay_signature;
 
         if (isAuthentic) {
-            // 2. Use Secure Authenticated User ID
+            // 2. Fetch Order from Razorpay to get Trusted 'notes' and 'amount'
+            // We do NOT trust 'amount' or 'items' from the client anymore.
+
+            const Razorpay = require('razorpay');
+            const instance = new Razorpay({
+                key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+                key_secret: razorpaySecret,
+            });
+
+            const order = await instance.orders.fetch(razorpay_order_id);
+
+            if (!order) {
+                return NextResponse.json({ message: 'Order logic failed: Order not found with provider.' }, { status: 500 });
+            }
+
+            // A. Trusted Amount
+            // order.amount is in paise, convert to rupees for DB if needed, or store as is. 
+            // Our Schema stores as text/numeric. Let's store what we charged.
+            const paidAmount = (order.amount / 100).toString();
+
+            // B. Trusted Items
+            // format: "id:type,id2:type2"
+            const courseDataRaw = order.notes?.course_data;
+            const trustedItems = [];
+
+            if (courseDataRaw) {
+                const pairs = courseDataRaw.split(',');
+                for (const p of pairs) {
+                    const [iId, iType] = p.split(':');
+                    if (iId) trustedItems.push({ id: iId, itemType: iType });
+                }
+            } else {
+                // Fallback for legacy orders (unlikely in prod if we just deployed, but safe)
+                // If no notes, we might have to trust client or fail. Making it fail is safer.
+                // But for now, let's log potential issue.
+                console.warn('Warning: No course_data in notes. Order might be old.');
+            }
+
+            // 3. Use Secure Authenticated User ID
             const secureUserId = user.id;
 
             // A. Record Transaction
-            // A. Record Transaction
             const { error: orderError } = await adminSupabase.from('orders').insert({
                 user_id: secureUserId,
-                amount: (amount || 0).toString(), // Ensure string, handle missing amount safely
+                amount: paidAmount,
                 status: 'Success',
-                plan_name: items?.map((i: any) => i.title).join(', ') || 'Bundle',
-                id: razorpay_payment_id, // Map payment_id to 'id' column as per schema
-                // provider_order_id: razorpay_order_id
+                plan_name: 'Purchased Items', // Generic name since we don't have titles in notes
+                id: razorpay_payment_id,
             });
 
             if (orderError) {
                 console.error('Error recording order:', orderError);
-                // We don't fail the request because payment was successful, just log error.
             }
 
             // B. Grant Access (Enrollments)
-            if (items && Array.isArray(items)) {
-                const enrollmentPromises = items.map((item: any) =>
+            // Use TRUSTED items
+            if (trustedItems.length > 0) {
+                const enrollmentPromises = trustedItems.map((item: any) =>
                     adminSupabase.from('enrollments').insert({
                         user_id: secureUserId,
                         target_id: item.id,
@@ -107,7 +143,7 @@ export async function POST(request: Request) {
                 message: "success",
                 orderId: razorpay_order_id,
                 paymentId: razorpay_payment_id,
-                enrolledTargets: items?.map((i: any) => i.id) || [] // Return the IDs we just unlocked
+                enrolledTargets: trustedItems.map((i: any) => i.id)
             });
         } else {
             console.error(`Signature Verification Failed. Expected: ${expectedSignature}, Received: ${razorpay_signature}`);

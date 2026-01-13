@@ -109,8 +109,8 @@ export async function POST(request: Request) {
             receipt: `receipt_${Date.now()}`,
             notes: {
                 user_id: user.id,
-                // Store course payload for webhook fulfillment
-                course_ids: items.map((i: any) => i.id).join(','),
+                // Store course payload for webhook/verification (id:type)
+                course_data: items.map((i: any) => `${i.id}:${i.itemType || i.type || 'material'}`).join(','),
                 coupon_used: couponCode || ''
             }
         };
