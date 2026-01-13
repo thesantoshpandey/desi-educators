@@ -88,8 +88,12 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 refreshEnrollments();
+                fetchUserProgress();
+                fetchData(); // Reload content in case RLS or visibility depends on auth
             } else if (event === 'SIGNED_OUT') {
                 setEnrolledTargetIds([]);
+                setUserProgress({});
+                fetchData(); // Reset to public content
             }
         });
         return () => subscription.unsubscribe();
@@ -333,8 +337,23 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
 
             formData.append('bucket', bucketName);
 
+            formData.append('bucket', bucketName);
+
+            // Force Session Refresh to ensure token is valid
+            const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+
+            if (sessionError || !session) {
+                console.error('Session Refresh Failed:', sessionError);
+                throw new Error('Your session has expired. Please log out and log in again.');
+            }
+
+            const token = session.access_token;
+
             const response = await fetch('/api/admin/upload', {
                 method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
                 body: formData,
             });
 

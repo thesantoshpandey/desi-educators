@@ -171,9 +171,9 @@ export default function AdminChapterPage({
                 }
                 finalUrl = publicUrl;
                 setIsUploading(false);
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Upload Error:', error);
-                alert('Upload Failed. Please try again.');
+                alert(`Upload Failed: ${error.message || 'Please try again.'}`);
                 setIsUploading(false);
                 return;
             }

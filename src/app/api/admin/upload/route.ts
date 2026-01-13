@@ -21,7 +21,23 @@ export async function POST(req: NextRequest) {
             }
         );
 
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const authHeader = req.headers.get('Authorization');
+        const token = authHeader?.replace('Bearer ', '');
+
+        let user;
+        let authError;
+
+        if (token) {
+            // Validate via Header Token
+            const { data, error } = await supabase.auth.getUser(token);
+            user = data.user;
+            authError = error;
+        } else {
+            // Validate via Cookies (Fallback)
+            const { data, error } = await supabase.auth.getUser();
+            user = data.user;
+            authError = error;
+        }
 
         if (authError || !user) {
             return NextResponse.json({ error: 'Unauthorized: No active session' }, { status: 401 });
