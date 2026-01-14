@@ -55,7 +55,7 @@
     padding: 8px 16px;
     border-radius: 20px;
     box-shadow: 0 2px 4px rgb(0 0 0 / 0.05);
-    z-index: 60;
+    z-index: 100001;
 }
 
 .controls button {
