@@ -76,20 +76,39 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
 
     // Fetch Initial Data
     useEffect(() => {
-        fetchData();
-        fetchUserProgress();
-        refreshEnrollments();
+        const init = async () => {
+            setIsLoading(true);
+            try {
+                // 1. Fetch Content Structure (Public)
+                await fetchData();
+
+                // 2. Fetch User-Specific Data (if logged in) & Products
+                await Promise.all([
+                    fetchUserProgress(),
+                    refreshEnrollments(),
+                    fetchProducts()
+                ]);
+            } catch (error) {
+                console.error("Initialization error:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        init();
     }, []);
 
-    // Also refresh enrollments when auth state likely changes (handled via polling or just initial mount is enough if we force refresh on login)
-    // Actually, we should listen for auth changes to clear/fetch enrollments.
+    // Also refresh enrollments when auth state likely changes
     useEffect(() => {
-        // Simple polling or re-check on focus could be added here for robustness
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                refreshEnrollments();
+                // We don't want to trigger a full full-page spinner here usually, 
+                // but for critical access rights, valid data is better than "locked"
+                // For now, just refresh the data.
+                await Promise.all([refreshEnrollments(), fetchUserProgress()]);
             } else if (event === 'SIGNED_OUT') {
                 setEnrolledTargetIds([]);
+                setUserProgress({});
             }
         });
         return () => subscription.unsubscribe();
@@ -115,15 +134,11 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
 
     const [products, setProducts] = useState<any[]>([]); // Simple product metadata
 
-    // Fetch Products (Metadata for access control)
-    useEffect(() => {
-        const fetchProducts = async () => {
-            const { supabase } = await import('@/lib/supabase'); // Ensure supabase is imported or available.
-            const { data } = await supabase.from('products').select('id, target_ids, type');
-            if (data) setProducts(data);
-        };
-        fetchProducts();
-    }, []);
+    const fetchProducts = async () => {
+        const { supabase } = await import('@/lib/supabase'); // Ensure supabase is imported or available.
+        const { data } = await supabase.from('products').select('id, target_ids, type');
+        if (data) setProducts(data);
+    };
 
     const hasAccess = (targetId: string) => {
         if (user?.role === 'admin') return true;
@@ -274,7 +289,7 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
     };
 
     const fetchData = async () => {
-        setIsLoading(true);
+
         try {
             // Fetch Subjects
             const { data: subjectsData, error: subjectsError } = await supabase
@@ -318,6 +333,7 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             if (quizzesData) setQuizzes(quizzesData);
 
             // Reconstruct nested structure
+            // Reconstruct nested structure
             if (subjectsData) setSubjects(subjectsData);
 
             if (chaptersData) {
@@ -350,8 +366,6 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             }
         } catch (error) {
             console.error('Error fetching content:', error);
-        } finally {
-            setIsLoading(false);
         }
     };
 

@@ -16,8 +16,21 @@ export default function ChapterPage({
     params: Promise<{ subject: string; chapter: string }>;
 }) {
     const { subject, chapter: chapterId } = use(params);
-    const { getChapterById, userProgress, toggleProgress, quizzes, hasAccess, subjects, chapters } = useContent();
+    const { getChapterById, userProgress, toggleProgress, quizzes, hasAccess, subjects, chapters, isLoading } = useContent();
     const { user } = useAuth();
+
+    // Add loading state check
+    if (isLoading) {
+        return (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                <div style={{ marginBottom: '16px' }}>
+                    <Lock size={32} style={{ opacity: 0.2 }} />
+                </div>
+                <p>Verifying access...</p>
+            </div>
+        );
+    }
+
     const chapterData = getChapterById(subject, chapterId);
     const subjectData = subjects.find(s => s.id === subject || s.title.toLowerCase() === subject.toLowerCase());
     const currentChapter = chapters.find(c => c.id === chapterId);
