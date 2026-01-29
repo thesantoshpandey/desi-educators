@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, Button, Input } from '@/components/ui';
 import { User, Mail, Save, UserCircle, BookOpen, ShoppingBag, LayoutDashboard, Clock, ShieldCheck, ChevronRight, Trash2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useContent } from '@/context/ContentContext';
+import { useProduct } from '@/context/ProductContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -127,45 +129,50 @@ export default function ProfilePage() {
 
     // Use ContentContext values directly for "My Courses" display
     const { enrolledTargetIds, hasAccess } = useContent();
+    const { products } = useProduct(); // Access product metadata
 
     useEffect(() => {
         // Derive "My Courses" from enrolledTargetIds/hasAccess
-        // This runs whenever permissions update
         const courses = [];
 
-        // Check Bundles
-        if (hasAccess('full_bundle') || hasAccess('full-year')) {
-            courses.push({ name: 'NEET 2026 Full Course', progress: 0, subject: 'Bundle' });
-        }
+        // 1. Add Directly Owned Bundles (so user sees their "199rs pack")
+        const ownedBundles = products.filter(p =>
+            p.type === 'bundle' && enrolledTargetIds.includes(p.id)
+        );
+        ownedBundles.forEach(b => {
+            courses.push({
+                name: b.name,
+                progress: 0,
+                subject: 'Bundle',
+                id: b.id
+            });
+        });
 
-        // Check Individual Subjects (Show if owned OR if uncovered by bundle logic)
-        // If Full Access is active, we might want to list individual subjects too for clarity?
-        // Or just list them if the USER thinks they have them.
-        // Let's list the core subjects if they have access to them.
-
+        // 2. Add Core Subjects if Accessible (even if technically part of a bundle)
+        // This is helpful for navigation: "I want to study Physics"
         if (hasAccess('physics')) courses.push({ name: 'Physics Mastery', progress: 0, subject: 'Physics' });
         if (hasAccess('chemistry')) courses.push({ name: 'Chemistry Essentials', progress: 0, subject: 'Chemistry' });
         if (hasAccess('biology')) courses.push({ name: 'Biology Deep Dive', progress: 0, subject: 'Biology' });
 
+        // 3. Add Test Series if Accessible
         if (hasAccess('test_series')) {
             courses.push({ name: 'All India Test Series', progress: 0, subject: 'Test Series' });
         }
 
-        // Remove duplicates if any (e.g. if 'full_bundle' adds multiple items logic, though here we constructed manually)
-        // Ensure unique by name
+        // Ensure unique by name to avoid clutter
         const uniqueCourses = courses.filter((c, index, self) =>
             index === self.findIndex((t) => (t.name === c.name))
         );
 
         setMyCourses(uniqueCourses);
 
-        // Update Stats (Courses Enrolled)
+        // Update Stats (Courses Enrolled) - Exclusive owner of this stat now
         setProfileStats(prev => ({
             ...prev,
             coursesEnrolled: uniqueCourses.length.toString()
         }));
 
-    }, [enrolledTargetIds, hasAccess]); // Re-run when access changes matches access logic
+    }, [enrolledTargetIds, hasAccess, products]); // Re-run when products/access changes
     try {
         const { data: attempts, error: attemptsError } = await supabase
             .from('quiz_attempts')
@@ -202,13 +209,8 @@ export default function ProfilePage() {
             const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
 
             // Update Stat Cards
-            // Courses Enrolled (index 0), Tests Attempted (index 1), Hours Studied (index 2)
-            // This is a bit hacky with direct state mutation but effectively sets initial values
-            // Better to use state for the stats array itself, but trying to be minimally invasive first.
-            // Actually, let's use a separate state or update the existing one if it were state.
-            // The 'stats' variable is constant here, so I should introduce a state for it.
+            // Courses Enrolled is handled by the useEffect above to avoid race conditions
             setProfileStats({
-                coursesEnrolled: myCourses.length.toString(),
                 testsAttempted: enrichedAttempts.length.toString(),
                 accuracy: `${accuracy}%`
             });
