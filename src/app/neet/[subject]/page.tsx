@@ -180,13 +180,32 @@ export default function SubjectPage({
 
             {/* DEBUG SECTION - Remove after fixing */}
             <div style={{ marginTop: '50px', padding: '20px', backgroundColor: '#f0f0f0', border: '1px dashed red', fontSize: '12px', fontFamily: 'monospace' }}>
-                <h4>Debug Info</h4>
-                <p>User ID: {user?.id}</p>
-                <p>Subject ID: {subject}</p>
-                <p>Has Access: {hasAccess(subject) ? 'YES' : 'NO'}</p>
-                <p>Is Loading: {isLoading ? 'YES' : 'NO'}</p>
-                <p>Enrolled Target IDs ({useContent().enrolledTargetIds.length}): {JSON.stringify(useContent().enrolledTargetIds)}</p>
-                <p>Products Loaded ({useContent().products.length}): {JSON.stringify(useContent().products)}</p>
+                <h4>Debug Info (Deep Trace)</h4>
+                <p><strong>Checking Access For:</strong> {subject}</p>
+                <hr style={{ margin: '8px 0' }} />
+                <p><strong>User ID:</strong> {user?.id}</p>
+                <p><strong>Enrolled IDs:</strong> {JSON.stringify(useContent().enrolledTargetIds)}</p>
+                <p><strong>Is Direct Owner?</strong> {useContent().enrolledTargetIds.includes(subject) ? 'YES' : 'NO'}</p>
+                <hr style={{ margin: '8px 0' }} />
+                <p><strong>All Products ({useContent().products.length}):</strong></p>
+                <div style={{ maxHeight: '100px', overflowY: 'auto' }}>
+                    {useContent().products.map((p: any) => (
+                        <div key={p.id}>{p.id} -> Uses Targets: {JSON.stringify(p.target_ids || p.targetIds)}</div>
+                    ))}
+                </div>
+                <hr style={{ margin: '8px 0' }} />
+                <p><strong>Owned Products (Intersection):</strong></p>
+                <div>
+                    {useContent().products.filter((p: any) => useContent().enrolledTargetIds.includes(p.id)).map((p: any) => (
+                        <div key={p.id}>
+                            <strong>{p.id}</strong>
+                            <br />Targets: {JSON.stringify(p.target_ids || p.targetIds)}
+                            <br />Does it match '{subject}'? {(p.target_ids || p.targetIds)?.includes(subject) ? 'YES !!!' : 'NO'}
+                        </div>
+                    ))}
+                </div>
+                <hr style={{ margin: '8px 0' }} />
+                <p><strong>Final Result (HasAccess):</strong> {hasAccess(subject) ? 'YES' : 'NO'}</p>
             </div>
         </div>
     );
