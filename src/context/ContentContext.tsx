@@ -181,20 +181,34 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
                 const wildcards = ['full_bundle', 'full-year', 'neet', 'full_course', 'all_access'];
                 if (product.target_ids && product.target_ids.some((t: string) => wildcards.includes(t))) return true;
 
-                // C. Name-Based Fallback (Stricter)
-                // Only grant global access if the name EXPLICITLY implies a full/complete package.
+                // C. Name-Based Fallback (Stricter & Scoped)
                 if (product.name) {
                     const nameLower = product.name.toLowerCase();
-                    // Split into words to check presence regardless of order
                     const terms = nameLower.split(' ');
 
                     const hasFull = terms.some((w: string) => ['full', 'complete', 'all', 'year', 'yearly'].includes(w));
                     const hasBundle = terms.includes('bundle') || terms.includes('course') || terms.includes('pack');
                     const isNeet = terms.includes('neet');
 
-                    // Must have "Full/Complete" AND "Bundle/Course"
-                    // Or specific phrases like "Class 11 Full", "Class 12 Full"
-                    if (hasFull && (hasBundle || isNeet)) {
+                    // Case 1: Mind Maps Bundle (Specific Scope)
+                    // "NEET Full Mind Maps Bundle" -> Should only unlock Subjects, not Mnemonics/Test Series
+                    if (nameLower.includes('mind map')) {
+                        // If it's a "Full" mind maps bundle, grant access to core subjects
+                        if (hasFull || isNeet) {
+                            const coreSubjects = ['physics', 'chemistry', 'biology'];
+                            if (coreSubjects.includes(targetId) || coreSubjects.some(s => targetId.includes(s))) {
+                                return true;
+                            }
+                        }
+                        // Do NOT return true for anything else (like 'mnemonics')
+                        continue;
+                    }
+
+                    // Case 2: True Global Access (Full Course / Yearly Batch)
+                    // Must NOT be just a "Test Series" or "Mind Map"
+                    const isRestricted = nameLower.includes('test') || nameLower.includes('mnemonic');
+
+                    if (!isRestricted && hasFull && (hasBundle || isNeet)) {
                         return true;
                     }
                 }
