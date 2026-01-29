@@ -28,6 +28,7 @@ interface ContentContextType {
     chapters: Chapter[];
     subjects: Subject[];
     quizzes: any[];
+    products: any[];
     addQuiz: (topicId: string, title: string, questions: any[], price: number) => Promise<void>;
     updateQuiz: (quizId: string, title: string, questions: any[], price: number) => Promise<void>;
     deleteQuiz: (quizId: string) => Promise<void>;
@@ -658,6 +659,7 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
             getChaptersBySubject,
             getChapterById,
             isLoading,
+            products,
             // New Entitlement Logic
             enrolledTargetIds,
             hasAccess,

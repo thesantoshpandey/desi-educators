@@ -177,6 +177,17 @@ export default function SubjectPage({
                     })}
                 </div>
             )}
+
+            {/* DEBUG SECTION - Remove after fixing */}
+            <div style={{ marginTop: '50px', padding: '20px', backgroundColor: '#f0f0f0', border: '1px dashed red', fontSize: '12px', fontFamily: 'monospace' }}>
+                <h4>Debug Info</h4>
+                <p>User ID: {user?.id}</p>
+                <p>Subject ID: {subject}</p>
+                <p>Has Access: {hasAccess(subject) ? 'YES' : 'NO'}</p>
+                <p>Is Loading: {isLoading ? 'YES' : 'NO'}</p>
+                <p>Enrolled Target IDs ({useContent().enrolledTargetIds.length}): {JSON.stringify(useContent().enrolledTargetIds)}</p>
+                <p>Products Loaded ({useContent().products.length}): {JSON.stringify(useContent().products)}</p>
+            </div>
         </div>
     );
 }
