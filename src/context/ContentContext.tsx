@@ -103,9 +103,6 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                // We don't want to trigger a full full-page spinner here usually, 
-                // but for critical access rights, valid data is better than "locked"
-                // For now, just refresh the data.
                 await Promise.all([refreshEnrollments(), fetchUserProgress()]);
             } else if (event === 'SIGNED_OUT') {
                 setEnrolledTargetIds([]);
@@ -116,29 +113,49 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
     }, []);
 
     const refreshEnrollments = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
             setEnrolledTargetIds([]);
             return;
         }
 
-        const { data, error } = await supabase
-            .from('enrollments')
-            .select('target_id')
-            .eq('user_id', user.id);
+        try {
+            // PROXY FETCH (Bypasses RLS)
+            const response = await fetch('/api/proxy/enrollments', {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            });
 
-        if (data) {
-            const ids = data.map(d => d.target_id);
-            setEnrolledTargetIds(ids);
+            if (response.ok) {
+                const { ids } = await response.json();
+                if (Array.isArray(ids)) {
+                    setEnrolledTargetIds(ids);
+                }
+            } else {
+                console.error('Failed to fetch enrollments via proxy');
+            }
+        } catch (e) {
+            console.error('Error fetching enrollments proxy:', e);
         }
     };
 
     const [products, setProducts] = useState<any[]>([]); // Simple product metadata
 
     const fetchProducts = async () => {
-        const { supabase } = await import('@/lib/supabase'); // Ensure supabase is imported or available.
-        const { data } = await supabase.from('products').select('id, target_ids, type');
-        if (data) setProducts(data);
+        try {
+            // PROXY FETCH (Bypasses RLS)
+            // Products should be public but using proxy guarantees consistent access
+            const response = await fetch('/api/proxy/products');
+            if (response.ok) {
+                const data = await response.json();
+                setProducts(data);
+            } else {
+                console.error('Failed to fetch products via proxy');
+            }
+        } catch (e) {
+            console.error('Error fetching products proxy:', e);
+        }
     };
 
     const hasAccess = (targetId: string) => {
