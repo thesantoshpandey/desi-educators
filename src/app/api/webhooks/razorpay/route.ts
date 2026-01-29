@@ -100,24 +100,44 @@ export async function POST(request: Request) {
             }
 
             // 4. Enroll User (Logic similar to /verify route)
-            // If we had course_ids in notes, we could enroll specific courses. 
-            // For now, if we don't have item info, we might just log success.
-            // PRO TIP: Update your /create-order to send course_id in notes!
-            if (notes.course_ids) {
-                const courseIds = notes.course_ids.split(',');
-                const enrollments = courseIds.map((cid: string) => ({
-                    user_id: userId,
-                    course_id: cid,
-                    item_id: cid,
-                    item_type: 'course', // simplified
-                    access_type: 'lifetime'
-                }));
+            // We use 'course_data' from notes which is trusted (signed/saved securely on creation)
+            // Format: "id:type,id:type"
+            const courseDataRaw = notes.course_data;
 
-                const { error: enrollError } = await supabaseAdmin
-                    .from('enrollments')
-                    .insert(enrollments);
+            if (courseDataRaw) {
+                const pairs = courseDataRaw.split(',');
+                const enrollments = [];
 
-                if (enrollError) console.error('Enrollment failed in webhook', enrollError);
+                for (const p of pairs) {
+                    const [iId, iType] = p.split(':');
+                    if (iId) {
+                        enrollments.push({
+                            user_id: userId,
+                            target_id: iId,
+                            target_type: iType || 'material',
+                            access_type: 'lifetime',
+                            // Using upsert or similar might be safer if we want to avoid duplicates errors,
+                            // but standard insert is fine if we just catch error.
+                        });
+                    }
+                }
+
+                if (enrollments.length > 0) {
+                    // We use ignoreDuplicates: true if available, or just insert.
+                    // Supabase insert has { onConflict: '...' } option via upsert or separate config.
+                    // Simple insert might fail if already exists. Let's use upsert or ignore.
+                    const { error: enrollError } = await supabaseAdmin
+                        .from('enrollments')
+                        .upsert(enrollments, { onConflict: 'user_id, target_id' });
+
+                    if (enrollError) {
+                        console.error('Enrollment failed in webhook', enrollError);
+                    } else {
+                        console.log(`Successfully enrolled user ${userId} in ${enrollments.length} items via webhook.`);
+                    }
+                }
+            } else {
+                console.warn('Webhook: No course_data in notes. Access might be delayed until client verify.');
             }
 
             return NextResponse.json({ status: 'ok' });

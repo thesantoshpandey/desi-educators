@@ -127,16 +127,23 @@ export async function POST(request: Request) {
             }
 
             // B. Grant Access (Enrollments)
-            // Use TRUSTED items
             if (trustedItems.length > 0) {
-                const enrollmentPromises = trustedItems.map((item: any) =>
-                    adminSupabase.from('enrollments').insert({
-                        user_id: secureUserId,
-                        target_id: item.id,
-                        target_type: item.itemType || 'material'
-                    })
-                );
-                await Promise.all(enrollmentPromises);
+                const enrollmentsToInsert = trustedItems.map((item: any) => ({
+                    user_id: secureUserId,
+                    target_id: item.id,
+                    target_type: item.itemType || 'material'
+                }));
+
+                // Use upsert to handle potential race conditions with webhook
+                const { error: enrollError } = await adminSupabase
+                    .from('enrollments')
+                    .upsert(enrollmentsToInsert, { onConflict: 'user_id, target_id' });
+
+                if (enrollError) {
+                    console.error('Error inserting enrollments in verify:', enrollError);
+                    // We don't rollback the order recording, but we should probably alert or rely on webhook fallback.
+                    // But usually upsert succeeds.
+                }
             }
 
             return NextResponse.json({
