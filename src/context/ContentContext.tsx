@@ -181,15 +181,20 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
                 const wildcards = ['full_bundle', 'full-year', 'neet', 'full_course', 'all_access'];
                 if (product.target_ids && product.target_ids.some((t: string) => wildcards.includes(t))) return true;
 
-                // C. Name-Based Fallback (If target_ids are empty/wrong)
-                // If user owns a product named "Full NEET Bundle", they should get access.
+                // C. Name-Based Fallback (Stricter)
+                // Only grant global access if the name EXPLICITLY implies a full/complete package.
                 if (product.name) {
                     const nameLower = product.name.toLowerCase();
-                    if (nameLower.includes('full bundle') ||
-                        nameLower.includes('complete neet') ||
-                        nameLower.includes('full year') ||
-                        (nameLower.includes('neet') && product.type === 'bundle')
-                    ) {
+                    // Split into words to check presence regardless of order
+                    const terms = nameLower.split(' ');
+
+                    const hasFull = terms.some((w: string) => ['full', 'complete', 'all', 'year', 'yearly'].includes(w));
+                    const hasBundle = terms.includes('bundle') || terms.includes('course') || terms.includes('pack');
+                    const isNeet = terms.includes('neet');
+
+                    // Must have "Full/Complete" AND "Bundle/Course"
+                    // Or specific phrases like "Class 11 Full", "Class 12 Full"
+                    if (hasFull && (hasBundle || isNeet)) {
                         return true;
                     }
                 }
