@@ -113,28 +113,74 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
         }
     };
 
+    const [products, setProducts] = useState<any[]>([]); // Simple product metadata
+
+    // Fetch Products (Metadata for access control)
+    useEffect(() => {
+        const fetchProducts = async () => {
+            const { supabase } = await import('@/lib/supabase'); // Ensure supabase is imported or available.
+            const { data } = await supabase.from('products').select('id, target_ids, type');
+            if (data) setProducts(data);
+        };
+        fetchProducts();
+    }, []);
+
     const hasAccess = (targetId: string) => {
         if (user?.role === 'admin') return true;
 
         // 1. Check Direct Ownership
         if (enrolledTargetIds.includes(targetId)) return true;
 
-        // 2. Check Global Bundles
+        // 2. Check Global Bundles (Legacy)
         if (enrolledTargetIds.includes('full_bundle') || enrolledTargetIds.includes('full-year')) return true;
 
-        // 3. Check Hierarchy (Buying Parent implies Child Access)
+        // 3. Check Product Entitlements (New Bundle System)
+        // Does the user own a Product that targets this content?
+        const ownedProductIds = enrolledTargetIds.filter(id => products.some(p => p.id === id));
+
+        for (const pid of ownedProductIds) {
+            const product = products.find(p => p.id === pid);
+            if (product) {
+                // A. Direct Target Match
+                if (product.target_ids && product.target_ids.includes(targetId)) return true;
+
+                // B. "Full Bundle" Product Type
+                if (product.type === 'bundle' && product.target_ids.includes('full_bundle')) return true;
+            }
+        }
+
+        // 4. Check Hierarchy (Buying Parent implies Child Access)
         // Find the target item in our data structure to verify its parents
         for (const chapter of chapters) {
             // A. Is target a Chapter? Check Subject Access
             if (chapter.id === targetId) {
+                // Check if we own the subject directly OR via a product
                 if (enrolledTargetIds.includes(chapter.subjectId)) return true;
+
+                // Check if we own a product that targets the SUBJECT
+                for (const pid of ownedProductIds) {
+                    const product = products.find(p => p.id === pid);
+                    if (product && product.target_ids && product.target_ids.includes(chapter.subjectId)) return true;
+                }
             }
 
             // B. Is target a Topic/Material? Check Chapter AND Subject Access
             // Check Topic ID
             const topic = chapter.topics.find(t => t.id === targetId);
             if (topic) {
-                if (enrolledTargetIds.includes(chapter.id) || enrolledTargetIds.includes(chapter.subjectId)) return true;
+                // Check Chapter ownership
+                if (enrolledTargetIds.includes(chapter.id)) return true;
+                // Check Subject ownership
+                if (enrolledTargetIds.includes(chapter.subjectId)) return true;
+
+                // Check Product ownership of parents
+                for (const pid of ownedProductIds) {
+                    const product = products.find(p => p.id === pid);
+                    if (product && product.target_ids) {
+                        if (product.target_ids.includes(chapter.id)) return true;
+                        if (product.target_ids.includes(chapter.subjectId)) return true;
+                    }
+                }
             }
 
             // Check Materials inside Topics
@@ -144,10 +190,19 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
                 const legacyQuiz = quizzes?.find(q => q.id === targetId);
 
                 if (material || (legacyQuiz && legacyQuiz.topic_id === t.id)) {
-                    // If we own the Chapter OR the Subject, we own the material
+                    // Check direct parent ownership (Chapter/Subject)
                     if (enrolledTargetIds.includes(chapter.id)) return true;
                     if (enrolledTargetIds.includes(chapter.subjectId)) return true;
-                    return false; // Found the item, but parent not owned (and direct check failed above)
+
+                    // Check Product ownership of parents
+                    for (const pid of ownedProductIds) {
+                        const product = products.find(p => p.id === pid);
+                        if (product && product.target_ids) {
+                            if (product.target_ids.includes(chapter.id)) return true;
+                            if (product.target_ids.includes(chapter.subjectId)) return true;
+                        }
+                    }
+                    return false;
                 }
             }
         }
@@ -161,6 +216,15 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
                 if (parentChapter) {
                     if (enrolledTargetIds.includes(parentChapter.id)) return true;
                     if (enrolledTargetIds.includes(parentChapter.subjectId)) return true;
+
+                    // Check Product ownership of parents
+                    for (const pid of ownedProductIds) {
+                        const product = products.find(p => p.id === pid);
+                        if (product && product.target_ids) {
+                            if (product.target_ids.includes(parentChapter.id)) return true;
+                            if (product.target_ids.includes(parentChapter.subjectId)) return true;
+                        }
+                    }
                 }
             }
         }
