@@ -13,7 +13,7 @@ export async function GET() {
         // We use admin client just to be safe against RLS, though products theoretically should be public.
         const { data, error } = await supabaseAdmin
             .from('products')
-            .select('id, target_ids, type');
+            .select('id, target_ids, type, name');
 
         if (error) {
             console.error('Proxy Products Error:', error);

@@ -177,10 +177,22 @@ export const ContentProvider = ({ children }: { children: React.ReactNode }) => 
                 // A. Direct Target Match
                 if (product.target_ids && product.target_ids.includes(targetId)) return true;
 
-                // B. "Full Bundle" / Wildcard Access
-                // If the product targets a global key, valid for all content
+                // B. "Full Bundle" / Wildcard Access (Target ID based)
                 const wildcards = ['full_bundle', 'full-year', 'neet', 'full_course', 'all_access'];
                 if (product.target_ids && product.target_ids.some((t: string) => wildcards.includes(t))) return true;
+
+                // C. Name-Based Fallback (If target_ids are empty/wrong)
+                // If user owns a product named "Full NEET Bundle", they should get access.
+                if (product.name) {
+                    const nameLower = product.name.toLowerCase();
+                    if (nameLower.includes('full bundle') ||
+                        nameLower.includes('complete neet') ||
+                        nameLower.includes('full year') ||
+                        (nameLower.includes('neet') && product.type === 'bundle')
+                    ) {
+                        return true;
+                    }
+                }
             }
         }
 
