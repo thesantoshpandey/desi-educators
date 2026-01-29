@@ -190,7 +190,7 @@ export default function SubjectPage({
                 <p><strong>All Products ({useContent().products.length}):</strong></p>
                 <div style={{ maxHeight: '100px', overflowY: 'auto' }}>
                     {useContent().products.map((p: any) => (
-                        <div key={p.id}>{p.id} -> Uses Targets: {JSON.stringify(p.target_ids || p.targetIds)}</div>
+                        <div key={p.id}>{p.id} &rarr; Uses Targets: {JSON.stringify(p.target_ids || p.targetIds)}</div>
                     ))}
                 </div>
                 <hr style={{ margin: '8px 0' }} />
