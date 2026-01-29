@@ -8,16 +8,17 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useProduct } from '@/context/ProductContext';
+import { useContent } from '@/context/ContentContext';
 import styles from './Pricing.module.css';
 
 export default function PricingPage() {
     const { user } = useAuth();
     const { addToCart } = useCart();
     const { products } = useProduct();
+    const { hasAccess, enrolledTargetIds } = useContent(); // Use robust access logic
     const router = useRouter();
     const [selectedPlan, setSelectedPlan] = useState<any>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [purchasedPlans, setPurchasedPlans] = useState<string[]>([]);
 
     // Filter products to display on Pricing Page
     // Show Bundles, Test Series, and promoted Subjects
@@ -27,28 +28,8 @@ export default function PricingPage() {
         return filtered.sort((a, b) => (b.isRecommended ? 1 : 0) - (a.isRecommended ? 1 : 0));
     }, [products]);
 
-    useEffect(() => {
-        const loadPurchased = async () => {
-            if (user) {
-                // Check Database (Source of Truth)
-                const { supabase } = await import('@/lib/supabase');
-                const { data } = await supabase.from('enrollments').select('target_id').eq('user_id', user.id);
-                const dbTargets = data?.map(e => e.target_id) || [];
-
-                const purchased: string[] = [];
-                displayPlans.forEach(plan => {
-                    // Check if *all* targets of this plan are present in DB enrollments
-                    const ownsAll = plan.targetIds.every(tid => dbTargets.includes(tid));
-                    if (ownsAll) {
-                        purchased.push(plan.id);
-                    }
-                });
-
-                setPurchasedPlans(purchased);
-            }
-        };
-        loadPurchased();
-    }, [isModalOpen, user, displayPlans]);
+    // Note: We no longer need manual effect to load purchases. 
+    // ContentContext handles all that logic securely via proxies and wildcard rules.
 
     const handleAddToCart = (plan: any) => {
         addToCart({
@@ -62,15 +43,12 @@ export default function PricingPage() {
 
     const handlePaymentSuccess = async () => {
         if (!selectedPlan || !user) return;
-
-        // 1. Access is granted by the server webhook (/api/payment/verify)
-        // 2. We just update the local UI state to reflect the purchase immediately
-
-        const newPurchased = [...purchasedPlans];
-        if (!newPurchased.includes(selectedPlan.id)) newPurchased.push(selectedPlan.id);
-        setPurchasedPlans(newPurchased);
-
+        // The modal calls refresh in ContentContext via onSuccess callback if wired, 
+        // but simple reload or context update works too.
+        // For now, we rely on ContentContext polling or simple refresh.
         setIsModalOpen(false);
+        // Force reload to get fresh permissions if needed, or rely on context logic
+        window.location.reload();
     };
 
     return (
@@ -87,7 +65,11 @@ export default function PricingPage() {
 
                 <div className={styles.grid}>
                     {displayPlans.map((plan) => {
-                        const isPurchased = purchasedPlans.includes(plan.id);
+                        // ROBUST CHECK:
+                        // 1. If we own the specific product ID directly (e.g. from restore)
+                        // 2. OR if we have access to ALL targets this plan provides (e.g. via Full Bundle)
+                        const isPurchased = enrolledTargetIds.includes(plan.id) ||
+                            (plan.targetIds && plan.targetIds.length > 0 && plan.targetIds.every((tid: string) => hasAccess(tid)));
 
                         // Determine icon
                         let PlanIcon = BookOpen;
