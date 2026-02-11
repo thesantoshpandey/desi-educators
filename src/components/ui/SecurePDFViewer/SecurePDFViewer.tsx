@@ -19,7 +19,6 @@ export const SecurePDFViewer = ({ fileId }: SecurePDFViewerProps) => {
     const [isLoading, setIsLoading] = useState(true);
 
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    const [debugInfo, setDebugInfo] = useState<any>(null);
 
     function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
         setNumPages(numPages);
@@ -30,12 +29,6 @@ export const SecurePDFViewer = ({ fileId }: SecurePDFViewerProps) => {
         console.error('PDF Load Error:', error);
         setErrorMsg(error.message);
         setIsLoading(false);
-
-        // Fetch debug info
-        fetch(`/api/secure/debug/${fileId}`)
-            .then(res => res.json())
-            .then(data => setDebugInfo(data))
-            .catch(err => console.error('Debug fetch failed', err));
     }
 
     // Secure URL that calls our API
@@ -93,13 +86,6 @@ export const SecurePDFViewer = ({ fileId }: SecurePDFViewerProps) => {
                         <div className={styles.error}>
                             <p className="font-bold text-lg">Failed to load protected document.</p>
                             {errorMsg && <p className="text-sm text-red-500 mt-2 font-mono bg-red-50 p-2 rounded">{errorMsg}</p>}
-
-                            {debugInfo && (
-                                <div className="mt-4 text-left text-xs bg-gray-100 p-4 rounded overflow-auto max-h-60 border border-gray-300">
-                                    <p className="font-bold mb-2 text-gray-700">Debug Diagnostics:</p>
-                                    <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
-                                </div>
-                            )}
                         </div>
                     }
                     noData={<div className={styles.error}>No document data found.</div>}
