@@ -18,8 +18,16 @@ export const SecurePDFViewer = ({ fileId }: SecurePDFViewerProps) => {
     const [pageNumber, setPageNumber] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
 
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
     function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
         setNumPages(numPages);
+        setIsLoading(false);
+    }
+
+    function onDocumentLoadError(error: Error) {
+        console.error('PDF Load Error:', error);
+        setErrorMsg(error.message);
         setIsLoading(false);
     }
 
@@ -65,12 +73,18 @@ export const SecurePDFViewer = ({ fileId }: SecurePDFViewerProps) => {
                 <Document
                     file={pdfUrl}
                     onLoadSuccess={onDocumentLoadSuccess}
+                    onLoadError={onDocumentLoadError}
                     loading={
                         <div className={styles.loader}>
                             <Loader2 className="animate-spin" /> Loading Protected Content...
                         </div>
                     }
-                    error={<div className={styles.error}>Failed to load protected document.</div>}
+                    error={
+                        <div className={styles.error}>
+                            <p>Failed to load protected document.</p>
+                            {errorMsg && <p className="text-sm text-red-400 mt-2">Error: {errorMsg}</p>}
+                        </div>
+                    }
                     noData={<div className={styles.error}>No document data found.</div>}
                 >
                     <Page
