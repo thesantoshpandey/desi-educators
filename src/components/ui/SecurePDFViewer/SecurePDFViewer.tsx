@@ -71,7 +71,10 @@ export const SecurePDFViewer = ({ fileId }: SecurePDFViewerProps) => {
             {/* Document Loader */}
             <div className={styles.documentWrapper}>
                 <Document
-                    file={pdfUrl}
+                    file={{
+                        url: pdfUrl,
+                        withCredentials: true,
+                    }}
                     onLoadSuccess={onDocumentLoadSuccess}
                     onLoadError={onDocumentLoadError}
                     loading={
