@@ -6,10 +6,8 @@ import { Loader2 } from 'lucide-react';
 import styles from './PDFViewer.module.css';
 
 // Worker setup for react-pdf
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-).toString();
+// Use unpkg CDN to ensure consistent worker version loading across all browsers
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface SecurePDFViewerProps {
     fileId: string; // The ID in the secure bucket

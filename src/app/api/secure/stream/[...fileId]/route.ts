@@ -190,10 +190,12 @@ export async function GET(
         const pdfBytes = await pdfDoc.save();
 
         // 5. Stream Response
-        return new NextResponse(Buffer.from(pdfBytes), {
+        const buffer = Buffer.from(pdfBytes);
+        return new NextResponse(buffer, {
             headers: {
                 'Content-Type': 'application/pdf',
                 'Content-Disposition': `inline; filename="${fileId.split('/').pop()}"`,
+                'Content-Length': buffer.length.toString(),
                 'Cache-Control': 'no-store, max-age=0',
             },
         });
