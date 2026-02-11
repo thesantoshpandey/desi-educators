@@ -74,7 +74,7 @@ export const SecurePDFViewer = ({ fileId }: SecurePDFViewerProps) => {
                     file={{
                         url: pdfUrl,
                         withCredentials: true,
-                    }}
+                    } as any}
                     onLoadSuccess={onDocumentLoadSuccess}
                     onLoadError={onDocumentLoadError}
                     loading={

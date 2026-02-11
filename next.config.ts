@@ -42,9 +42,7 @@ const nextConfig: any = {
 
     return headers;
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+
   typescript: {
     ignoreBuildErrors: true,
   },
