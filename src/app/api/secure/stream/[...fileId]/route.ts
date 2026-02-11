@@ -66,9 +66,28 @@ export async function GET(
 
             const enrolledIds = enrollments?.map(e => e.target_id) || [];
 
-            const hasAccess = enrolledIds.includes('full_bundle') ||
-                enrolledIds.includes(subjectId) ||
-                enrolledIds.includes(chapterId) ||
+            // Resolve Bundle Permissions
+            // If user is enrolled in a bundle (e.g. "Full Mind Maps"), that bundle has target_ids (e.g. "biology", "physics")
+            let allAccessibleIds = new Set<string>(enrolledIds);
+
+            if (enrolledIds.length > 0) {
+                const { data: products } = await supabaseUserClient
+                    .from('products')
+                    .select('target_ids')
+                    .in('id', enrolledIds);
+
+                if (products) {
+                    products.forEach(p => {
+                        if (Array.isArray(p.target_ids)) {
+                            p.target_ids.forEach((tid: string) => allAccessibleIds.add(tid));
+                        }
+                    });
+                }
+            }
+
+            const hasAccess = allAccessibleIds.has('full_bundle') ||
+                allAccessibleIds.has(subjectId) ||
+                allAccessibleIds.has(chapterId) ||
                 (user.user_metadata?.role === 'admin') || // Admin bypass
                 (await supabaseUserClient.from('profiles').select('role').eq('id', user.id).single()).data?.role === 'admin';
 
