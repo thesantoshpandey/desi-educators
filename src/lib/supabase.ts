@@ -8,7 +8,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('Missing Supabase environment variables');
 }
 
+// In production, use the proxy to bypass India's Supabase block
+// The proxy is configured in next.config.ts rewrites
+const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+const clientUrl = isProduction ? '/sb-proxy' : (supabaseUrl || 'https://placeholder.supabase.co');
+
 export const supabase = createBrowserClient(
-    supabaseUrl || 'https://placeholder.supabase.co',
+    clientUrl,
     supabaseAnonKey || 'placeholder-key'
 );
