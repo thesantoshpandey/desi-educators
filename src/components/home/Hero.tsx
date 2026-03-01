@@ -8,7 +8,7 @@ import styles from './Hero.module.css';
 
 import { useAuth } from '@/context/AuthContext';
 
-// NEET 2026 countdown - May 4, 2025 (update year as needed)
+// NEET 2026 countdown
 function useCountdown(targetDate: Date) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   useEffect(() => {
@@ -119,7 +119,7 @@ const Hero: React.FC = () => {
             }}
           >
             <MessageCircle size={18} />
-            Ask Priya AI - Your Free NEET Study Buddy on Telegram
+            Meet Priya AI — India\'s First AI NEET Mentor (Free on Telegram)
           </a>
         </div>
       </div>
