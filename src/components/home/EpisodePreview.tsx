@@ -32,14 +32,13 @@ export const EpisodePreview: React.FC = () => {
   useEffect(() => {
     const fetchEpisodes = async () => {
       try {
-        const res = await fetch('/api/admin/sync-episodes');
+        const res = await fetch('/api/episodes/public');
         if (res.ok) {
           const data = await res.json();
-          // Take first 4 episodes (already ordered by order_index)
-          setEpisodes((data.episodes || []).slice(0, 4));
+          setEpisodes(data.episodes || []);
         }
-      } catch {
-        // Silent fail, section just won't show
+      } catch (err) {
+        console.error('EpisodePreview fetch error:', err);
       } finally {
         setLoading(false);
       }
