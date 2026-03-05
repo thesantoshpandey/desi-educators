@@ -11,7 +11,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // In production, use the proxy to bypass India's Supabase block
 // The proxy is configured in next.config.ts rewrites
 const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
-const clientUrl = isProduction ? '/sb-proxy' : (supabaseUrl || 'https://placeholder.supabase.co');
+const clientUrl = (isProduction && typeof window !== 'undefined')
+    ? `${window.location.origin}/sb-proxy`
+    : (supabaseUrl || 'https://placeholder.supabase.co');
 
 export const supabase = createBrowserClient(
     clientUrl,
