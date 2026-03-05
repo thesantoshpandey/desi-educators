@@ -2,72 +2,54 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import Image from 'next/image';
-import { Instagram, Youtube, MessageCircle } from 'lucide-react';
 import styles from './Footer.module.css';
 
-export const Footer = () => {
-  const pathname = usePathname();
-  if (pathname.startsWith('/admin')) return null;
-
-  return (
+export const Footer = () => (
+  <>
     <footer className={styles.footer}>
-      <div className={styles.container}>
-        <div className={styles.top}>
-          <div className={styles.brand}>
-            <Link href="/" className={styles.logo}>
-              <Image
-                src="/logo.png"
-                alt="Desi Educators"
-                width={100}
-                height={60}
-                style={{ width: 'auto', height: '28px' }}
-              />
-              <span className={styles.logoText}>Desi Educators</span>
-            </Link>
-            <p className={styles.tagline}>
-              Concept-first NEET preparation by Priya Ma&apos;am.
-              Teaching since 2017.
-            </p>
-            <div className={styles.socials}>
-              <a href="https://www.instagram.com/desieducators" target="_blank" rel="noopener noreferrer" className={styles.socialLink} aria-label="Instagram">
-                <Instagram size={18} />
-              </a>
-              <a href="https://www.youtube.com/@desieducators" target="_blank" rel="noopener noreferrer" className={styles.socialLink} aria-label="YouTube">
-                <Youtube size={18} />
-              </a>
-              <a href="https://t.me/PriyaAI_bot" target="_blank" rel="noopener noreferrer" className={styles.socialLink} aria-label="Priya AI">
-                <MessageCircle size={18} />
-              </a>
-            </div>
+      <div className={styles.inner}>
+        <div className={styles.grid}>
+          <div>
+            <div className={styles.brand}>Desi Educators</div>
+            <p className={styles.tagline}>NEET Preparation. Taught correctly.</p>
           </div>
 
-          <div className={styles.links}>
-            <div className={styles.column}>
-              <h4 className={styles.colTitle}>Learn</h4>
-              <Link href="/neet">Subjects</Link>
-              <Link href="/episodes">Episodes</Link>
-              <Link href="/pricing">Pricing</Link>
-            </div>
-            <div className={styles.column}>
-              <h4 className={styles.colTitle}>Company</h4>
-              <Link href="/about">About</Link>
-              <Link href="/contact">Contact</Link>
-            </div>
-            <div className={styles.column}>
-              <h4 className={styles.colTitle}>Legal</h4>
-              <Link href="/terms">Terms</Link>
-              <Link href="/privacy-policy">Privacy</Link>
-              <Link href="/refund-policy">Refund Policy</Link>
-            </div>
+          <div>
+            <div className={styles.colTitle}>Learn</div>
+            <Link href="/neet" className={styles.colLink}>Lectures</Link>
+            <Link href="/episodes" className={styles.colLink}>Episodes</Link>
+            <Link href="#priya-ai" className={styles.colLink}>Priya AI</Link>
+            <Link href="/dashboard" className={styles.colLink}>Dashboard</Link>
+          </div>
+
+          <div>
+            <div className={styles.colTitle}>Research</div>
+            <Link href="#ncert" className={styles.colLink}>NCERT Corrections</Link>
+            <a href="https://doi.org/10.5281/zenodo.18619351" target="_blank" rel="noopener noreferrer" className={styles.colLink}>White Paper</a>
+            <span className={styles.colLink}>RTI Applications</span>
+            <span className={styles.colLink}>Methodology</span>
+          </div>
+
+          <div>
+            <div className={styles.colTitle}>Connect</div>
+            <a href="https://instagram.com/desieducators" target="_blank" rel="noopener noreferrer" className={styles.colLink}>Instagram</a>
+            <a href="https://youtube.com/@desieducators" target="_blank" rel="noopener noreferrer" className={styles.colLink}>YouTube</a>
+            <a href="https://t.me/priyaaibot" target="_blank" rel="noopener noreferrer" className={styles.colLink}>Telegram</a>
           </div>
         </div>
 
         <div className={styles.bottom}>
-          <p>&copy; 2026 Desi Educators Private Limited</p>
+          <span>&copy; 2026 Desi Educators. All rights reserved.</span>
+          <span>Powered by Summit Neuro</span>
         </div>
       </div>
     </footer>
-  );
-};
+
+    {/* WhatsApp floating button */}
+    <a href="https://wa.me/message" target="_blank" rel="noopener noreferrer" className={styles.whatsapp} aria-label="WhatsApp">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+      </svg>
+    </a>
+  </>
+);

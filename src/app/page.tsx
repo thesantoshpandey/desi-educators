@@ -1,13 +1,10 @@
 import { Hero, SubjectSection, Features, EpisodePreview, NCERTSection, PriyaAICTA } from "@/components/home";
-
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Desi Educators | NEET Biology with Priya Ma'am",
-  description: "Learn NEET Biology from Priya Ma'am, MSc Gold Medalist and NCERT Curriculum Auditor. Free audio lectures, AI mentor, and concept-first teaching for NEET 2026.",
-  alternates: {
-    canonical: 'https://www.desieducators.com',
-  },
+  title: "Desi Educators | Crack NEET 2026 with Priya Ma'am",
+  description: "Crack NEET 2026 with Priya Ma'am. Biology, Physics, Chemistry. MSc Gold Medalist teaching since 2017. NCERT errors corrected. AI tutor. Free lectures.",
+  alternates: { canonical: 'https://www.desieducators.com' },
 };
 
 export default function Home() {

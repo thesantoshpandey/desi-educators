@@ -1,17 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Instrument_Serif } from "next/font/google";
+import { Cormorant_Garamond, Karla } from "next/font/google";
 import "./globals.css";
 
-const dmSans = DM_Sans({
-  variable: "--font-body",
+const karla = Karla({
+  variable: "--font-karla",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["300", "400", "500"],
 });
 
-const instrumentSerif = Instrument_Serif({
-  variable: "--font-display",
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
   subsets: ["latin"],
-  weight: ["400"],
+  weight: ["300", "400", "500", "600"],
   style: ["normal", "italic"],
 });
 
@@ -76,7 +76,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${dmSans.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
+      <body className={`${karla.variable} ${cormorant.variable}`} suppressHydrationWarning>
         <AuthProvider>
           <ContentProvider>
             <ProductProvider>

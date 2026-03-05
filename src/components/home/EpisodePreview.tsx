@@ -1,87 +1,59 @@
 'use client';
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Play, ArrowRight } from 'lucide-react';
 import styles from './EpisodePreview.module.css';
 
-interface Episode {
-  id: string;
-  title: string;
-  subject: string;
-  duration_seconds: number;
-  play_count: number;
-  audio_url: string;
-}
-
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  if (m >= 60) {
-    const h = Math.floor(m / 60);
-    const rm = m % 60;
-    return `${h}h ${rm}m`;
-  }
-  return `${m} min`;
-}
+interface Episode { id: string; title: string; subject: string; duration_seconds: number; }
 
 export const EpisodePreview: React.FC = () => {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchEpisodes = async () => {
-      try {
-        const res = await fetch('/api/episodes/public');
-        if (res.ok) {
-          const data = await res.json();
-          setEpisodes(data.episodes || []);
-        }
-      } catch (err) {
-        console.error('EpisodePreview fetch error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchEpisodes();
+    fetch('/api/episodes/public')
+      .then(r => r.json())
+      .then(d => { if (d.episodes) setEpisodes(d.episodes); })
+      .catch(() => {});
   }, []);
 
-  if (loading || episodes.length === 0) return null;
+  const fallback = [
+    { id: '1', title: 'Ecological Succession: Bare Rock to Forest', subject: 'Biology', duration_seconds: 2040 },
+    { id: '2', title: 'Genetic Drift and the Founder Effect', subject: 'Biology', duration_seconds: 1680 },
+    { id: '3', title: 'Thermodynamics: Laws and NEET Applications', subject: 'Physics', duration_seconds: 2520 },
+    { id: '4', title: 'Organic Chemistry: Reaction Mechanisms', subject: 'Chemistry', duration_seconds: 2160 },
+  ];
+
+  const display = episodes.length > 0 ? episodes.slice(0, 4) : fallback;
 
   return (
     <section className={styles.section}>
-      <div className={styles.container}>
+      <div className={styles.inner}>
         <div className={styles.header}>
           <div>
-            <p className={styles.eyebrow}>Free Lectures</p>
-            <h2 className={styles.title}>Listen while you study</h2>
+            <div className={styles.label}>
+              <span className={styles.divider} />
+              Summit Neuro Podcast
+            </div>
+            <h2 className={styles.title}>
+              Listen. Absorb. <em className={styles.italic}>Score.</em>
+            </h2>
           </div>
-          <Link href="/episodes" className={styles.viewAll}>
-            All episodes <ArrowRight size={15} />
-          </Link>
+          <Link href="/episodes" className={styles.allLink}>All Episodes &rarr;</Link>
         </div>
-
         <div className={styles.grid}>
-          {episodes.map((ep) => (
-            <Link href="/episodes" key={ep.id} className={styles.card}>
-              <div className={styles.thumbnail}>
-                <img
-                  src={`https://img.youtube.com/vi/${ep.audio_url}/mqdefault.jpg`}
-                  alt={ep.title}
-                  className={styles.thumbImg}
-                />
-                <div className={styles.playOverlay}>
-                  <Play size={22} fill="white" color="white" />
-                </div>
-                <span className={styles.duration}>{formatDuration(ep.duration_seconds)}</span>
+          {display.map((e, i) => (
+            <div key={e.id} className={styles.card}>
+              <div className={styles.cardHead}>
+                <span className={styles.ep}>EP {String(display.length - i).padStart(3, '0')}</span>
+                <span className={styles.dur}>{Math.round(e.duration_seconds / 60)} min</span>
               </div>
-              <div className={styles.cardBody}>
-                <span className={styles.subject}>{ep.subject}</span>
-                <h3 className={styles.epTitle}>{ep.title}</h3>
-              </div>
-            </Link>
+              <h3 className={styles.cardTitle}>{e.title}</h3>
+              <span className={styles.tag}>{e.subject || 'Biology'}</span>
+            </div>
           ))}
         </div>
       </div>
     </section>
   );
 };
+
+export default EpisodePreview;
