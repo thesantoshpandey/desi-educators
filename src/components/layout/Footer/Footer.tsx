@@ -1,67 +1,73 @@
 'use client';
-// Triggering Vercel deployment
 
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { Instagram, Youtube, MessageCircle } from 'lucide-react';
 import styles from './Footer.module.css';
 
 export const Footer = () => {
-    const pathname = usePathname();
-    if (pathname.startsWith('/admin')) return null;
+  const pathname = usePathname();
+  if (pathname.startsWith('/admin')) return null;
 
-    return (
-        <footer className={styles.footer}>
-            <div className={styles.container}>
-                <div className={styles.brandSection}>
-                    <div className={styles.logo}>
-                        <Image
-                            src="/logo.png"
-                            alt="Desi Educators Logo"
-                            width={100}
-                            height={60}
-                            style={{ width: 'auto', height: '30px' }}
-                        />
-                        <span style={{ color: 'black', fontWeight: 700 }}>Desi Educators</span>
-                    </div>
-                    <p className={styles.tagline}>
-                        Desi Roots. Global Results. Your trusted partner for NEET preparation.
-                    </p>
-                    <div className={styles.socials}>
-                        {/* Social links placeholder - hidden until active */}
-                        {/* <Facebook size={20} />
-                        <Twitter size={20} />
-                        <Instagram size={20} />
-                        <Linkedin size={20} /> */}
-                    </div>
-                </div>
+  return (
+    <footer className={styles.footer}>
+      <div className={styles.container}>
+        <div className={styles.top}>
+          <div className={styles.brand}>
+            <Link href="/" className={styles.logo}>
+              <Image
+                src="/logo.png"
+                alt="Desi Educators"
+                width={100}
+                height={60}
+                style={{ width: 'auto', height: '28px' }}
+              />
+              <span className={styles.logoText}>Desi Educators</span>
+            </Link>
+            <p className={styles.tagline}>
+              Concept-first NEET preparation by Priya Ma&apos;am.
+              Teaching since 2017.
+            </p>
+            <div className={styles.socials}>
+              <a href="https://www.instagram.com/desieducators" target="_blank" rel="noopener noreferrer" className={styles.socialLink} aria-label="Instagram">
+                <Instagram size={18} />
+              </a>
+              <a href="https://www.youtube.com/@desieducators" target="_blank" rel="noopener noreferrer" className={styles.socialLink} aria-label="YouTube">
+                <Youtube size={18} />
+              </a>
+              <a href="https://t.me/PriyaAI_bot" target="_blank" rel="noopener noreferrer" className={styles.socialLink} aria-label="Priya AI">
+                <MessageCircle size={18} />
+              </a>
+            </div>
+          </div>
 
-                <div className={styles.linksSection}>
-                    <div className={styles.column}>
-                        <h4>Company</h4>
-                        <Link href="/about">About Us</Link>
-                        <Link href="/contact">Contact</Link>
-                        {/* <Link href="/careers">Careers</Link> */}
-                    </div>
-                    <div className={styles.column}>
-                        <h4>Resources</h4>
-                        <Link href="/neet">NEET Syllabus</Link>
-                        {/* <Link href="/blog">Blog</Link> */}
-                        {/* <Link href="/toppers">Success Stories</Link> */}
-                    </div>
-                    <div className={styles.column}>
-                        <h4>Legal</h4>
-                        <Link href="/terms">Terms & Conditions</Link>
-                        <Link href="/privacy-policy">Privacy Policy</Link>
-                        <Link href="/refund-policy">Refund & Cancellation Policy</Link>
-                    </div>
-                </div>
+          <div className={styles.links}>
+            <div className={styles.column}>
+              <h4 className={styles.colTitle}>Learn</h4>
+              <Link href="/neet">Subjects</Link>
+              <Link href="/episodes">Episodes</Link>
+              <Link href="/pricing">Pricing</Link>
             </div>
-            <div className={styles.copyright}>
-                &copy; {new Date().getFullYear()} Desi Educators Private Limited. All rights reserved.
+            <div className={styles.column}>
+              <h4 className={styles.colTitle}>Company</h4>
+              <Link href="/about">About</Link>
+              <Link href="/contact">Contact</Link>
             </div>
-        </footer >
-    );
+            <div className={styles.column}>
+              <h4 className={styles.colTitle}>Legal</h4>
+              <Link href="/terms">Terms</Link>
+              <Link href="/privacy-policy">Privacy</Link>
+              <Link href="/refund-policy">Refund Policy</Link>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.bottom}>
+          <p>&copy; 2026 Desi Educators Private Limited</p>
+        </div>
+      </div>
+    </footer>
+  );
 };

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Clock, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui';
 import styles from './Hero.module.css';
 import { useAuth } from '@/context/AuthContext';
@@ -31,95 +31,86 @@ function useCountdown(targetDate: Date) {
 
 export const Hero: React.FC = () => {
   const { user } = useAuth();
-  const neetDate = new Date('2026-05-03T09:00:00+05:30');
+  // NEET UG 2026: 3 May 2026, 2:00 PM IST (confirmed by NTA)
+  const neetDate = new Date('2026-05-03T14:00:00+05:30');
   const { days, hours, minutes, seconds } = useCountdown(neetDate);
 
   return (
     <section className={styles.hero}>
-      {/* Countdown strip */}
-      <div className={styles.countdownStrip}>
-        <Clock size={16} />
-        <span className={styles.countdownLabel}>NEET 2026</span>
-        <div className={styles.countdownBlocks}>
-          {[
-            { val: days, label: 'days' },
-            { val: hours, label: 'hrs' },
-            { val: minutes, label: 'min' },
-            { val: seconds, label: 'sec' },
-          ].map(({ val, label }) => (
-            <div key={label} className={styles.countdownBlock}>
-              <span className={styles.countdownNum}>{String(val).padStart(2, '0')}</span>
-              <span className={styles.countdownUnit}>{label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <div className={styles.grain} />
 
       <div className={styles.container}>
         <div className={styles.content}>
-          <div className={styles.badge}>
-            <Sparkles size={14} />
-            India&apos;s First AI NEET Mentor
-          </div>
+          <p className={styles.eyebrow}>NEET 2026 Preparation</p>
 
           <h1 className={styles.headline}>
-            Learn Biology from
-            <span className={styles.highlight}> Priya Ma&apos;am</span>
+            Learn Biology{'\n'}from <em className={styles.italic}>Priya Ma&apos;am</em>
           </h1>
 
           <p className={styles.subhead}>
-            MSc Gold Medalist. 75,000+ students on Instagram.
-            NCERT Curriculum Auditor. Concept-first teaching that
-            actually sticks.
+            The Short Trick Queen. Teaching since 2017. NCERT Curriculum Auditor.
+            Concept-first Biology that has reached millions across the country.
           </p>
+
+          <div className={styles.countdown}>
+            <span className={styles.countdownLabel}>Exam starts in</span>
+            <div className={styles.countdownBlocks}>
+              {[
+                { val: days, label: 'Days' },
+                { val: hours, label: 'Hrs' },
+                { val: minutes, label: 'Min' },
+                { val: seconds, label: 'Sec' },
+              ].map(({ val, label }) => (
+                <div key={label} className={styles.countdownBlock}>
+                  <span className={styles.countdownNum}>{String(val).padStart(2, '0')}</span>
+                  <span className={styles.countdownUnit}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div className={styles.actions}>
             <Link href={user ? '/neet' : '/signup'}>
               <Button variant="primary" size="lg">
-                {user ? 'Continue Learning' : 'Start Free Prep'}
+                {user ? 'Continue Learning' : 'Start Learning Free'}
                 <ArrowRight size={18} style={{ marginLeft: 8 }} />
               </Button>
             </Link>
-            <Link href="/episodes">
-              <Button variant="outline" size="lg">
-                Listen Free
-              </Button>
+            <Link href="/episodes" className={styles.ghostLink}>
+              Listen to free lectures
             </Link>
           </div>
 
-          <div className={styles.stats}>
-            <div className={styles.statItem}>
-              <strong>75K+</strong>
-              <span>Instagram Students</span>
+          <div className={styles.proofBar}>
+            <div className={styles.proofItem}>
+              <span className={styles.proofNum}>Since 2017</span>
+              <span className={styles.proofLabel}>Teaching NEET Biology</span>
             </div>
-            <div className={styles.divider} />
-            <div className={styles.statItem}>
-              <strong>10.9K</strong>
-              <span>YouTube Subscribers</span>
+            <div className={styles.proofDivider} />
+            <div className={styles.proofItem}>
+              <span className={styles.proofNum}>Millions</span>
+              <span className={styles.proofLabel}>Students reached</span>
             </div>
-            <div className={styles.divider} />
-            <div className={styles.statItem}>
-              <strong>93+</strong>
-              <span>Free Lectures</span>
+            <div className={styles.proofDivider} />
+            <div className={styles.proofItem}>
+              <span className={styles.proofNum}>93+</span>
+              <span className={styles.proofLabel}>Free lectures</span>
             </div>
           </div>
         </div>
 
         <div className={styles.visual}>
-          <div className={styles.imageContainer}>
-            <div className={styles.imageGlow} />
-            <Image
-              src="/hero-person-full.png"
-              alt="Priya Ma'am - Desi Educators"
-              width={480}
-              height={600}
-              className={styles.heroImage}
-              priority
-            />
-            <div className={styles.captionCard}>
-              <p className={styles.captionName}>Priya Pandey</p>
-              <p className={styles.captionDegree}>MSc Biology Gold Medalist</p>
-            </div>
+          <Image
+            src="/hero-person-full.png"
+            alt="Priya Ma'am"
+            width={560}
+            height={840}
+            className={styles.heroImage}
+            priority
+          />
+          <div className={styles.captionFloat}>
+            <span className={styles.captionName}>Priya Pandey</span>
+            <span className={styles.captionRole}>MSc Gold Medalist &middot; NCERT Auditor</span>
           </div>
         </div>
       </div>

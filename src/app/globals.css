@@ -1,26 +1,22 @@
 :root {
-  /* Brand Colors */
-  /* Brand Colors */
+  /* Brand */
   --primary-color: #DC2626;
-  /* Strong Red */
   --primary-hover: #b91c1c;
-  /* Darker Red */
-  --secondary-color: #f3f4f6;
-  /* Neutral Gray (instead of Pink) */
-  --accent-color: #000000;
-  /* Black */
+  --accent-color: #DC2626;
 
-  /* Text Colors */
-  --text-primary: #1F2937;
-  /* Dark Slate */
-  --text-secondary: #4B5563;
-  /* Gray */
-  --text-light: #9CA3AF;
+  /* Text */
+  --text-primary: #0a0a0a;
+  --text-secondary: #52525b;
+  --text-light: #a1a1aa;
 
   /* Backgrounds */
-  --bg-body: #F9FAFB;
+  --bg-body: #fafaf9;
   --bg-card: #FFFFFF;
-  --bg-sidebar: #FFFFFF;
+  --bg-dark: #0a0a0a;
+
+  /* Typography */
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
 
   /* Spacing */
   --spacing-xs: 4px;
@@ -29,7 +25,7 @@
   --spacing-lg: 24px;
   --spacing-xl: 32px;
 
-  /* Border Radius */
+  /* Radius */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -56,9 +52,10 @@ body {
 body {
   color: var(--text-primary);
   background: var(--bg-body);
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-body);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
@@ -66,12 +63,7 @@ a {
   text-decoration: none;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   line-height: 1.2;
 }
@@ -81,4 +73,20 @@ button {
   border: none;
   background: none;
   font-family: inherit;
+}
+
+/* Fade-in animation utility */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fadeUp 0.7s ease-out forwards;
 }

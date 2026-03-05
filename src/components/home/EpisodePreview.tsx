@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Play, ArrowRight, Headphones } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { Play, ArrowRight } from 'lucide-react';
 import styles from './EpisodePreview.module.css';
 
 interface Episode {
@@ -12,7 +11,7 @@ interface Episode {
   subject: string;
   duration_seconds: number;
   play_count: number;
-  audio_url: string; // YouTube video ID
+  audio_url: string;
 }
 
 function formatDuration(seconds: number): string {
@@ -52,22 +51,12 @@ export const EpisodePreview: React.FC = () => {
     <section className={styles.section}>
       <div className={styles.container}>
         <div className={styles.header}>
-          <div className={styles.headerLeft}>
-            <div className={styles.sectionBadge}>
-              <Headphones size={14} />
-              Summit Neuro Podcast
-            </div>
+          <div>
+            <p className={styles.eyebrow}>Free Lectures</p>
             <h2 className={styles.title}>Listen while you study</h2>
-            <p className={styles.subtitle}>
-              Free audio lectures from Priya Ma&apos;am. Biology concepts explained in Hindi, 
-              designed for revision on the go.
-            </p>
           </div>
           <Link href="/episodes" className={styles.viewAll}>
-            <Button variant="outline" size="sm">
-              All Episodes
-              <ArrowRight size={16} style={{ marginLeft: 6 }} />
-            </Button>
+            All episodes <ArrowRight size={15} />
           </Link>
         </div>
 
@@ -81,16 +70,13 @@ export const EpisodePreview: React.FC = () => {
                   className={styles.thumbImg}
                 />
                 <div className={styles.playOverlay}>
-                  <Play size={24} fill="white" color="white" />
+                  <Play size={22} fill="white" color="white" />
                 </div>
                 <span className={styles.duration}>{formatDuration(ep.duration_seconds)}</span>
               </div>
               <div className={styles.cardBody}>
                 <span className={styles.subject}>{ep.subject}</span>
                 <h3 className={styles.epTitle}>{ep.title}</h3>
-                {ep.play_count > 0 && (
-                  <span className={styles.plays}>{ep.play_count} plays</span>
-                )}
               </div>
             </Link>
           ))}

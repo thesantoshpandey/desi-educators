@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google"; // Use Inter as requested
+import { DM_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const dmSans = DM_Sans({
+  variable: "--font-body",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["400"],
+  style: ["normal", "italic"],
 });
 
 export const viewport: Viewport = {
@@ -68,14 +76,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable}`} suppressHydrationWarning>
+      <body className={`${dmSans.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
         <AuthProvider>
           <ContentProvider>
             <ProductProvider>
               <CartProvider>
                 <EpisodePlayerProvider>
                   <Navbar />
-                  <main style={{ minHeight: 'calc(100vh - 64px - 300px)' }}>
+                  <main>
                     {children}
                   </main>
                   <Footer />
