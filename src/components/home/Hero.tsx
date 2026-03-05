@@ -2,125 +2,125 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Clock, MessageCircle } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowRight, Clock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui';
 import styles from './Hero.module.css';
-
 import { useAuth } from '@/context/AuthContext';
 
-// NEET 2026 countdown
 function useCountdown(targetDate: Date) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   useEffect(() => {
-    const timer = setInterval(() => {
+    const calc = () => {
       const now = new Date().getTime();
       const distance = targetDate.getTime() - now;
-      if (distance < 0) { clearInterval(timer); return; }
+      if (distance < 0) return;
       setTimeLeft({
         days: Math.floor(distance / (1000 * 60 * 60 * 24)),
         hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
         minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
         seconds: Math.floor((distance % (1000 * 60)) / 1000),
       });
-    }, 1000);
+    };
+    calc();
+    const timer = setInterval(calc, 1000);
     return () => clearInterval(timer);
   }, [targetDate]);
   return timeLeft;
 }
 
-const Hero: React.FC = () => {
+export const Hero: React.FC = () => {
   const { user } = useAuth();
-  // NEET UG 2026 expected date - update when NTA announces
   const neetDate = new Date('2026-05-03T09:00:00+05:30');
   const { days, hours, minutes, seconds } = useCountdown(neetDate);
 
   return (
     <section className={styles.hero}>
+      {/* Countdown strip */}
+      <div className={styles.countdownStrip}>
+        <Clock size={16} />
+        <span className={styles.countdownLabel}>NEET 2026</span>
+        <div className={styles.countdownBlocks}>
+          {[
+            { val: days, label: 'days' },
+            { val: hours, label: 'hrs' },
+            { val: minutes, label: 'min' },
+            { val: seconds, label: 'sec' },
+          ].map(({ val, label }) => (
+            <div key={label} className={styles.countdownBlock}>
+              <span className={styles.countdownNum}>{String(val).padStart(2, '0')}</span>
+              <span className={styles.countdownUnit}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className={styles.container}>
-        {/* NEET Countdown Banner */}
-        <div style={{
-          background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
-          borderRadius: '12px',
-          padding: '12px 20px',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '16px',
-          flexWrap: 'wrap',
-          color: 'white',
-          fontSize: '14px',
-          fontWeight: 600,
-        }}>
-          <Clock size={18} />
-          <span>NEET 2026 in</span>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {[
-              { val: days, label: 'D' },
-              { val: hours, label: 'H' },
-              { val: minutes, label: 'M' },
-              { val: seconds, label: 'S' },
-            ].map(({ val, label }) => (
-              <span key={label} style={{
-                background: 'rgba(255,255,255,0.2)',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                minWidth: '36px',
-                textAlign: 'center' as const,
-              }}>
-                {val}{label}
-              </span>
-            ))}
+        <div className={styles.content}>
+          <div className={styles.badge}>
+            <Sparkles size={14} />
+            India&apos;s First AI NEET Mentor
+          </div>
+
+          <h1 className={styles.headline}>
+            Learn Biology from
+            <span className={styles.highlight}> Priya Ma&apos;am</span>
+          </h1>
+
+          <p className={styles.subhead}>
+            MSc Gold Medalist. 75,000+ students on Instagram.
+            NCERT Curriculum Auditor. Concept-first teaching that
+            actually sticks.
+          </p>
+
+          <div className={styles.actions}>
+            <Link href={user ? '/neet' : '/signup'}>
+              <Button variant="primary" size="lg">
+                {user ? 'Continue Learning' : 'Start Free Prep'}
+                <ArrowRight size={18} style={{ marginLeft: 8 }} />
+              </Button>
+            </Link>
+            <Link href="/episodes">
+              <Button variant="outline" size="lg">
+                Listen Free
+              </Button>
+            </Link>
+          </div>
+
+          <div className={styles.stats}>
+            <div className={styles.statItem}>
+              <strong>75K+</strong>
+              <span>Instagram Students</span>
+            </div>
+            <div className={styles.divider} />
+            <div className={styles.statItem}>
+              <strong>10.9K</strong>
+              <span>YouTube Subscribers</span>
+            </div>
+            <div className={styles.divider} />
+            <div className={styles.statItem}>
+              <strong>93+</strong>
+              <span>Free Lectures</span>
+            </div>
           </div>
         </div>
 
-        <div className={styles.heroContent}>
-          <h1 className={styles.title}>
-            Master NEET with{' '}
-            <span className={styles.highlight}>Visual Mind Maps</span>
-          </h1>
-          <p className={styles.subtitle}>
-            Comprehensive NEET preparation materials designed by top educators.
-            Visual mind maps, detailed notes, and practice questions for Physics,
-            Chemistry, and Biology.
-          </p>
-          <div className={styles.ctaGroup}>
-            <Link href={user ? '/neet' : '/pricing'}>
-              <Button variant="primary" size="lg">
-                {user ? 'Start Learning' : 'Get Started'}
-                <ArrowRight size={20} />
-              </Button>
-            </Link>
-            <Link href="/neet">
-              <Button variant="outline" size="lg">
-                Explore Subjects
-              </Button>
-            </Link>
+        <div className={styles.visual}>
+          <div className={styles.imageContainer}>
+            <div className={styles.imageGlow} />
+            <Image
+              src="/hero-person-full.png"
+              alt="Priya Ma'am - Desi Educators"
+              width={480}
+              height={600}
+              className={styles.heroImage}
+              priority
+            />
+            <div className={styles.captionCard}>
+              <p className={styles.captionName}>Priya Pandey</p>
+              <p className={styles.captionDegree}>MSc Biology Gold Medalist</p>
+            </div>
           </div>
-
-          {/* Priya AI CTA */}
-          <a
-            href="https://t.me/PriyaAI_bot"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginTop: '16px',
-              padding: '10px 20px',
-              background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
-              color: 'white',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 600,
-              textDecoration: 'none',
-              transition: 'transform 0.2s',
-            }}
-          >
-            <MessageCircle size={18} />
-            Meet Priya AI — India\'s First AI NEET Mentor (Free on Telegram)
-          </a>
         </div>
       </div>
     </section>
