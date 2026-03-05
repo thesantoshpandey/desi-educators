@@ -58,6 +58,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ContentProvider } from "@/context/ContentContext";
 import { CartProvider } from "@/context/CartContext";
 import { ProductProvider } from "@/context/ProductContext";
+import { EpisodePlayerProvider } from "@/context/EpisodePlayerContext";
+import { MiniPlayer } from "@/components/player";
 
 export default function RootLayout({
   children,
@@ -71,11 +73,14 @@ export default function RootLayout({
           <ContentProvider>
             <ProductProvider>
               <CartProvider>
-                <Navbar />
-                <main style={{ minHeight: 'calc(100vh - 64px - 300px)' }}>
-                  {children}
-                </main>
-                <Footer />
+                <EpisodePlayerProvider>
+                  <Navbar />
+                  <main style={{ minHeight: 'calc(100vh - 64px - 300px)' }}>
+                    {children}
+                  </main>
+                  <Footer />
+                  <MiniPlayer />
+                </EpisodePlayerProvider>
               </CartProvider>
             </ProductProvider>
           </ContentProvider>
